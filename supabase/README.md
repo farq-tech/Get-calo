@@ -15,3 +15,5 @@ supabase db push
 | `20260723000002_rls_policies.sql` | RLS + feedback storage policies |
 
 Farq remains an external read-only source configured via `FARQ_SUPABASE_*` env vars in the ML pipeline.
+
+**No Farq yet?** Use the bootstrap path in `docs/FARQ_FREE_BOOTSTRAP.md` (`python -m dataset.generate_demo`).

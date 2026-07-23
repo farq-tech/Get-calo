@@ -51,6 +51,17 @@ cp .env.example .env
 
 ### 3. ML pipeline
 
+**Without Farq access** (bootstrap demo dataset from public/synthetic images):
+
+```bash
+npm run ml:setup
+npm run ml:pipeline:demo   # generate demo YOLO set + seed nutrition into Calora Supabase
+```
+
+See `docs/FARQ_FREE_BOOTSTRAP.md`.
+
+**With Farq read-only credentials** (production-scale dataset):
+
 ```bash
 npm run ml:setup
 npm run ml:pipeline   # download → validate → augment → train → export

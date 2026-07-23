@@ -13,10 +13,13 @@
     "admin": "npm run dev --workspace=admin",
     "admin:build": "npm run build --workspace=admin",
     "ml:setup": "cd ml && python3 -m venv .venv && .venv/bin/pip install -r requirements.txt",
+    "ml:demo-dataset": "cd ml && .venv/bin/python -m dataset.generate_demo",
+    "ml:seed-nutrition": "cd ml && .venv/bin/python scripts/seed_demo_nutrition.py",
     "ml:dataset": "cd ml && .venv/bin/python -m dataset.generate",
     "ml:train": "cd ml && .venv/bin/python -m train.train_yolo",
     "ml:export": "cd ml && .venv/bin/python -m export.export_models",
     "ml:pipeline": "cd ml && .venv/bin/python scripts/run_full_pipeline.py",
+    "ml:pipeline:demo": "cd ml && .venv/bin/python -m dataset.generate_demo && .venv/bin/python scripts/seed_demo_nutrition.py",
     "lint": "npm run lint --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present"
   },
