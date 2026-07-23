@@ -1,0 +1,71 @@
+# Dependencies
+node_modules/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Env & secrets
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+
+# Mobile
+mobile/.expo/
+mobile/ios/Pods/
+mobile/android/.gradle/
+mobile/android/app/build/
+*.jks
+*.mobileprovision
+
+# ML / data (large artifacts)
+ml/.venv/
+ml/.pytest_cache/
+ml/__pycache__/
+data/raw/
+data/processed/
+data/datasets/
+data/exports/
+models/**/*.pt
+models/**/*.onnx
+models/**/*.mlpackage/
+models/**/*.mlmodel
+models/**/*.tflite
+!models/.gitkeep
+!data/.gitkeep
+runs/
+wandb/
+.ultralytics/
+*.cache
+
+# Admin / Next
+admin/.next/
+admin/out/
+
+# IDE / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+.cursor/
+
+# Logs / coverage
+*.log
+coverage/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Misc
+tmp/
+.turbo/
+*.sqlite
+*.db
