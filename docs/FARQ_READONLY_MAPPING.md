@@ -1,28 +1,42 @@
-# Farq schema mapping (read-only)
+# Farq schema mapping (read-only) — wired to live Farq project
 
-The ML pipeline reads Farq via Supabase REST/`select` only. Adjust env vars if your Farq column names differ — **do not change Farq**.
+Calora **only SELECTs** from Farq. Never modify Farq.
 
-| Pipeline field | Default Farq column / setting |
-|----------------|-------------------------------|
-| Canonical class | `item_identity` (`FARQ_IDENTITY_COLUMN`) |
-| Image URL | `image_url` |
-| Names | `name_en`, `name_ar` |
-| Macros | `calories`, `protein`, `carbs`, `fat` |
-| Serving | `serving_size_g` |
-| Category | `category` |
-| Table | `items` (`FARQ_ITEMS_TABLE`) |
+## Live mapping (`mpgbvtaguerncgbzvpwg`)
 
-## Rules
+| Pipeline need | Farq source |
+|---------------|-------------|
+| YOLO class (`item_identity`) | `canonical_items.id` → `canonical:{id}` |
+| Training images | `provider_items.image` where `canonical_item_id` is set |
+| Name EN / AR | `canonical_items.canonical_name_*` (fallback `provider_items.name_*`) |
+| Calories | `provider_items.calories` (median per canonical); also parsed from names like `Cal 691` |
+| Protein / carbs / fat | **Not in Farq today** → null until enriched |
+| Serving | `canonical_items.size_value` / `size_unit` |
+| Category | `canonical_items.category` |
 
-1. **Never** use `provider_items.id` or provider SKUs as YOLO class names.
-2. Group every row by `item_identity` before assigning `class_id`.
-3. Multiple provider images for one identity → one class, many samples.
-4. If Farq exposes views, prefer a read-only view that already resolves identity + image URL + nutrition.
+**Never** train on `provider_items.id`. Multiple provider images for one `canonical_item_id` = one class.
 
-Example env override:
+## Scale (approx)
+
+| Resource | Count |
+|----------|------:|
+| `canonical_items` | ~34,730 |
+| `provider_items` with image + canonical link | ~94,448 |
+
+## Env
 
 ```bash
-FARQ_ITEMS_TABLE=catalog_items_view
-FARQ_IDENTITY_COLUMN=canonical_item_id
-FARQ_IMAGE_URL_COLUMN=primary_image_url
+FARQ_SUPABASE_URL=https://mpgbvtaguerncgbzvpwg.supabase.co
+FARQ_SUPABASE_SERVICE_KEY=...   # read usage only
+FARQ_MAX_ROWS=20000             # optional cap for smoke runs (0 = all)
+MAX_CLASSES=500
+MIN_IMAGES_PER_CLASS=5
+```
+
+## Commands
+
+```bash
+cd ml
+python -c "from dataset.farq_client import probe_farq; print(probe_farq())"
+python -m dataset.generate --name farq_yolo
 ```

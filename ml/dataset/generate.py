@@ -247,7 +247,9 @@ def generate_dataset(
     dataset_dir = out_root / dataset_name
 
     logger.info("Fetching Farq identity groups (read-only)…")
-    groups = fetch_identity_groups()
+    groups = fetch_identity_groups(
+        max_rows=settings.farq_max_rows or None,
+    )
     if not groups:
         raise RuntimeError("No Farq identity groups found — check credentials/schema")
 

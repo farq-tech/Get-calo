@@ -7,11 +7,12 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = ROOT.parent
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=str(ROOT / ".env"),
+        env_file=(str(REPO_ROOT / ".env"), str(ROOT / ".env")),
         env_file_encoding="utf-8",
         extra="ignore",
     )
@@ -30,6 +31,8 @@ class Settings(BaseSettings):
 
     min_images_per_class: int = 8
     max_classes: int = 5000
+    # Cap provider image rows fetched from Farq (None / 0 = all). Useful for smoke runs.
+    farq_max_rows: int = 0
     min_image_side: int = 128
     max_aspect_ratio: float = 3.0
     phash_duplicate_threshold: int = 6
@@ -48,17 +51,19 @@ class Settings(BaseSettings):
     val_split: float = 0.1
     test_split: float = 0.1
 
-    # Farq table/column mapping (adjust to actual Farq schema without modifying Farq)
-    farq_items_table: str = "items"
-    farq_identity_column: str = "item_identity"
-    farq_image_url_column: str = "image_url"
+    # Farq schema (Get-calo / Farq production) — do not modify Farq
+    farq_provider_items_table: str = "provider_items"
+    farq_canonical_items_table: str = "canonical_items"
+    farq_items_table: str = "provider_items"  # legacy alias
+    farq_identity_column: str = "canonical_item_id"
+    farq_image_url_column: str = "image"
     farq_name_en_column: str = "name_en"
     farq_name_ar_column: str = "name_ar"
     farq_calories_column: str = "calories"
     farq_protein_column: str = "protein"
     farq_carbs_column: str = "carbs"
     farq_fat_column: str = "fat"
-    farq_serving_column: str = "serving_size_g"
+    farq_serving_column: str = "size_value"
     farq_category_column: str = "category"
 
 
