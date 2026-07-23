@@ -1,0 +1,122 @@
+import React, { useEffect } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
+import Animated, {
+  Easing,
+  cancelAnimation,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
+
+import { colors } from '@/theme/colors';
+import { useSettingsStore } from '@/hooks/useSettingsStore';
+
+interface ShutterButtonProps {
+  onPress: () => void;
+  disabled?: boolean;
+  busy?: boolean;
+}
+
+export function ShutterButton({ onPress, disabled, busy }: ShutterButtonProps) {
+  const pulse = useSharedValue(1);
+  const ring = useSharedValue(0);
+  const hapticsEnabled = useSettingsStore((s) => s.hapticsEnabled);
+
+  useEffect(() => {
+    pulse.value = withRepeat(
+      withSequence(
+        withTiming(1.06, { duration: 900, easing: Easing.inOut(Easing.ease) }),
+        withTiming(1, { duration: 900, easing: Easing.inOut(Easing.ease) }),
+      ),
+      -1,
+      false,
+    );
+    return () => cancelAnimation(pulse);
+  }, [pulse]);
+
+  useEffect(() => {
+    if (busy) {
+      ring.value = withRepeat(withTiming(1, { duration: 700 }), -1, true);
+    } else {
+      cancelAnimation(ring);
+      ring.value = withTiming(0, { duration: 200 });
+    }
+  }, [busy, ring]);
+
+  const outerStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: pulse.value }],
+  }));
+
+  const busyStyle = useAnimatedStyle(() => ({
+    opacity: 0.45 + ring.value * 0.55,
+    transform: [{ scale: 1 + ring.value * 0.08 }],
+  }));
+
+  const handlePress = () => {
+    if (disabled || busy) return;
+    if (hapticsEnabled) {
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
+    onPress();
+  };
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Capture meal"
+      onPress={handlePress}
+      disabled={disabled || busy}
+      style={({ pressed }) => [styles.hit, pressed && styles.pressed]}
+    >
+      <Animated.View style={[styles.outer, outerStyle, busy && busyStyle]}>
+        <LinearGradient
+          colors={[...colors.gradientShutter]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.gradient}
+        >
+          <View style={styles.inner} />
+        </LinearGradient>
+      </Animated.View>
+    </Pressable>
+  );
+}
+
+const SIZE = 78;
+
+const styles = StyleSheet.create({
+  hit: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pressed: {
+    opacity: 0.85,
+  },
+  outer: {
+    width: SIZE,
+    height: SIZE,
+    borderRadius: SIZE / 2,
+    padding: 4,
+    borderWidth: 2,
+    borderColor: colors.accentBorder,
+    backgroundColor: 'rgba(10,14,13,0.35)',
+  },
+  gradient: {
+    flex: 1,
+    borderRadius: SIZE / 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  inner: {
+    width: SIZE - 28,
+    height: SIZE - 28,
+    borderRadius: (SIZE - 28) / 2,
+    backgroundColor: colors.bg,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+});

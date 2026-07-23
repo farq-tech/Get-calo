@@ -1,0 +1,70 @@
+{
+  "brand": "Calora",
+  "tagline": "Scan. Know. Eat well.",
+  "camera": {
+    "permissionTitle": "Camera access needed",
+    "permissionBody": "Calora scans meals on your device. Photos never leave your phone unless you choose to send feedback.",
+    "grantPermission": "Enable camera",
+    "scanning": "Scanning…",
+    "holdSteady": "Point at your meal",
+    "settings": "Settings"
+  },
+  "result": {
+    "calories": "Calories",
+    "kcal": "kcal",
+    "protein": "Protein",
+    "carbs": "Carbs",
+    "fat": "Fat",
+    "serving": "Serving",
+    "confidence": "Confidence",
+    "lowConfidenceTitle": "We couldn't confidently identify this meal",
+    "lowConfidenceBody": "Help us improve by correcting the food name.",
+    "correct": "Correct food",
+    "scanAgain": "Scan again",
+    "grams": "g",
+    "unknownFood": "Unknown food",
+    "perServing": "per serving"
+  },
+  "correct": {
+    "title": "Correct food",
+    "searchPlaceholder": "Search foods…",
+    "submit": "Submit correction",
+    "submitting": "Sending…",
+    "success": "Thanks — feedback received",
+    "error": "Couldn't send feedback. Try again.",
+    "includePhoto": "Include photo",
+    "suggested": "Suggestions",
+    "noResults": "No matches. Type a custom name below.",
+    "customName": "Food name",
+    "customPlaceholder": "e.g. Kabsa with chicken"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "english": "English",
+    "arabic": "العربية",
+    "model": "On-device model",
+    "modelVersion": "Version",
+    "modelBackend": "Backend",
+    "offline": "Offline status",
+    "online": "Online — updates available check",
+    "offlineReady": "Offline ready",
+    "offlineLimited": "Offline — using bundled model",
+    "checkUpdates": "Check for model updates",
+    "checking": "Checking…",
+    "upToDate": "You're on the latest model",
+    "updateAvailable": "Update available",
+    "haptics": "Haptics",
+    "about": "About",
+    "aboutBody": "Calora runs food recognition entirely on-device. Cloud is used only for optional corrections and model updates.",
+    "privacy": "Your scans stay on this device by default."
+  },
+  "common": {
+    "back": "Back",
+    "cancel": "Cancel",
+    "done": "Done",
+    "retry": "Retry",
+    "loading": "Loading…",
+    "error": "Something went wrong"
+  }
+}

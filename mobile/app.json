@@ -1,0 +1,69 @@
+{
+  "expo": {
+    "name": "Calora",
+    "slug": "calora",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "calora",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0A0E0D"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "app.calora.scanner",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Calora needs camera access to scan meals and estimate calories on-device.",
+        "NSPhotoLibraryUsageDescription": "Calora may save corrected meal photos for model improvement.",
+        "CFBundleAllowMixedLocalizations": true,
+        "CFBundleLocalizations": ["en", "ar"]
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0A0E0D"
+      },
+      "package": "app.calora.scanner",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.INTERNET"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-localization",
+      "expo-font",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Calora to access your camera to scan meals."
+        }
+      ],
+      "expo-sqlite",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#0A0E0D",
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "calora-placeholder"
+      }
+    }
+  }
+}

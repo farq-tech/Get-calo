@@ -1,0 +1,33 @@
+node_modules/
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+
+ios/
+android/
+.DS_Store
+*.pem
+
+# Local env
+.env
+.env.local
+.env.*.local
+
+# Native model artifacts (large binaries)
+assets/models/*.onnx
+assets/models/*.tflite
+assets/models/*.mlmodel
+assets/models/*.mlpackage
+!assets/models/.gitkeep
+
+npm-debug.*
+yarn-debug.*
+yarn-error.*
