@@ -1,40 +1,57 @@
 {
   "brand": "SnapCal",
-  "tagline": "Scan food, drinks — anything.",
+  "tagline": "Point. Scan. Know.",
   "credit": "Designed & Developed by Sattam Alkhalaf",
+  "creditBy": "Designed & Developed by",
+  "engineSub": "Nutrition analysis",
   "camera": {
     "permissionTitle": "Camera access needed",
-    "permissionBody": "SnapCal scans food, drinks, and snacks on your device. Photos stay private unless you send feedback.",
+    "permissionBody": "SnapCal recognizes food and drinks right on your device.",
+    "permissionPrivacy": "Photos stay private",
     "grantPermission": "Enable camera",
+    "notNow": "Not now",
     "scanning": "Scanning…",
     "holdSteady": "Point at food or a drink",
+    "tapToScan": "Tap the shutter to scan",
     "settings": "Settings",
+    "history": "History",
+    "modeFood": "Food",
+    "modeDrink": "Drink",
+    "modeSnack": "Snack",
     "webTitle": "Scan anything on the web",
     "webBody": "Upload a photo of food, a drink, or a snack — then confirm or search the catalog for the right item.",
     "uploadPhoto": "Upload photo",
     "demoScan": "Run demo scan",
-    "steps": {
-      "uploading": "Uploading image...",
-      "identifying": "Identifying food items...",
-      "calculating": "Calculating calories...",
-      "preparing": "Preparing results..."
+    "onDevice": "Works on your device",
+    "analyzeMsgs": {
+      "recognize": "Recognizing food…",
+      "ingredients": "Detecting ingredients…",
+      "portion": "Estimating portion size…",
+      "calories": "Calculating calories…",
+      "profile": "Building nutrition profile…",
+      "finalize": "Finalizing analysis…"
     }
   },
   "result": {
+    "title": "Result",
     "calories": "Calories",
     "kcal": "kcal",
     "protein": "Protein",
     "carbs": "Carbs",
     "fat": "Fat",
     "serving": "Serving",
+    "servingSize": "Serving size",
     "confidence": "Confidence",
     "lowConfidenceTitle": "Not sure what this is",
     "lowConfidenceBody": "Confidence is low. Search the catalog and pick the closest match.",
-    "correct": "Change item",
+    "notRight": "Not the right item?",
+    "correct": "Change",
     "scanAgain": "Scan again",
+    "save": "Save meal",
     "grams": "g",
     "unknownFood": "Unknown item",
-    "perServing": "per serving"
+    "perServing": "per serving",
+    "est": "Est."
   },
   "correct": {
     "title": "Pick food or drink",
@@ -68,8 +85,8 @@
     "updateAvailable": "Update available",
     "haptics": "Haptics",
     "about": "About",
-    "aboutBody": "SnapCal uses AI vision to recognize food, drinks, and grocery items, then estimates calories and macros. If the match is wrong, pick from the catalog.",
-    "privacy": "Photos are sent securely for AI analysis, then discarded. Corrections stay on this device by default."
+    "aboutBody": "SnapCal recognizes food, drinks, and grocery items, then estimates calories and macros. If the match is wrong, pick from the catalog.",
+    "privacy": "Photos are analyzed securely and discarded. Corrections stay on this device by default."
   },
   "common": {
     "back": "Back",

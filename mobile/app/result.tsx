@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -11,6 +11,7 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { Ionicons } from '@expo/vector-icons';
 
 import { CalorieCard } from '@/components/CalorieCard';
 import { useScanStore, useSettingsStore } from '@/hooks/useSettingsStore';
@@ -18,12 +19,15 @@ import { colors } from '@/theme/colors';
 import { motion, radius, spacing } from '@/theme/tokens';
 import { typography } from '@/theme/typography';
 
+const SERVING_FACTORS = [1, 1.33, 1.9];
+
 export default function ResultScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const result = useScanStore((s) => s.lastResult);
   const locale = useSettingsStore((s) => s.locale);
+  const [servingIdx, setServingIdx] = useState(0);
 
   const foodName = useMemo(() => {
     if (!result?.nutrition) return t('result.unknownFood');
@@ -31,14 +35,29 @@ export default function ResultScreen() {
     return result.nutrition.nameEn;
   }, [locale, result, t]);
 
+  const factor = SERVING_FACTORS[servingIdx];
+  const scaledNutrition = useMemo(() => {
+    if (!result?.nutrition) return null;
+    const n = result.nutrition;
+    return {
+      ...n,
+      caloriesKcal: Math.round(n.caloriesKcal * factor),
+      proteinG: Math.round(n.proteinG * factor),
+      carbsG: Math.round(n.carbsG * factor),
+      fatG: Math.round(n.fatG * factor),
+      servingSizeG: Math.round(n.servingSizeG * factor),
+    };
+  }, [factor, result]);
+
   const servingLabel = useMemo(() => {
-    if (!result?.nutrition) return '—';
-    const label =
-      locale === 'ar' && result.nutrition.servingLabelAr
-        ? result.nutrition.servingLabelAr
-        : result.nutrition.servingLabelEn;
-    return `${result.nutrition.servingSizeG}${t('result.grams')} · ${label}`;
-  }, [locale, result, t]);
+    if (!scaledNutrition) return '—';
+    return `${t('result.est')} ${scaledNutrition.servingSizeG}${t('result.grams')} · ${t('result.perServing')}`;
+  }, [scaledNutrition, t]);
+
+  const servingOptions = useMemo(() => {
+    const base = result?.nutrition?.servingSizeG ?? 240;
+    return SERVING_FACTORS.map((f) => `${Math.round(base * f)}${t('result.grams')}`);
+  }, [result, t]);
 
   if (!result) {
     return (
@@ -46,12 +65,7 @@ export default function ResultScreen() {
         <View style={[styles.empty, { paddingTop: insets.top + 40 }]}>
           <Text style={styles.emptyText}>{t('common.error')}</Text>
           <Pressable style={styles.primaryHit} onPress={() => router.replace('/camera')}>
-            <LinearGradient
-              colors={[...colors.gradientPrimary]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.primaryBtn}
-            >
+            <LinearGradient colors={[...colors.gradientPrimary]} style={styles.primaryBtn}>
               <Text style={styles.primaryBtnText}>{t('result.scanAgain')}</Text>
             </LinearGradient>
           </Pressable>
@@ -61,25 +75,25 @@ export default function ResultScreen() {
   }
 
   return (
-    <LinearGradient colors={[...colors.gradientAtmosphere]} style={styles.fill}>
-      <LinearGradient
-        colors={[...colors.gradientTealWash]}
-        style={styles.wash}
-        pointerEvents="none"
-      />
+    <View style={styles.fill}>
+      <View style={[styles.topBar, { paddingTop: insets.top + 12 }]}>
+        <Pressable style={styles.iconBtn} onPress={() => router.replace('/camera')}>
+          <Ionicons name="chevron-back" size={18} color={colors.text} />
+        </Pressable>
+        <Text style={styles.topTitle}>{t('result.title')}</Text>
+        <View style={styles.iconBtnSpacer} />
+      </View>
+
       <ScrollView
         contentContainerStyle={[
           styles.content,
-          {
-            paddingTop: insets.top + 20,
-            paddingBottom: Math.max(insets.bottom, 16) + 24,
-          },
+          { paddingBottom: Math.max(insets.bottom, 16) + 100 },
         ]}
         showsVerticalScrollIndicator={false}
       >
         <Animated.View entering={FadeInDown.duration(motion.emphasized).springify()}>
           <CalorieCard
-            nutrition={result.nutrition}
+            nutrition={scaledNutrition}
             foodName={foodName}
             servingLabel={servingLabel}
             confidence={result.confidence}
@@ -95,37 +109,51 @@ export default function ResultScreen() {
           />
         </Animated.View>
 
-        {result.lowConfidence ? (
-          <Animated.View
-            entering={FadeInDown.delay(120).duration(motion.standard)}
-            style={styles.lowBox}
-          >
-            <Text style={styles.lowTitle}>{t('result.lowConfidenceTitle')}</Text>
-            <Text style={styles.lowBody}>{t('result.lowConfidenceBody')}</Text>
-            <Pressable style={styles.correctBtn} onPress={() => router.push('/correct')}>
-              <Text style={styles.correctBtnText}>{t('result.correct')}</Text>
-            </Pressable>
-          </Animated.View>
-        ) : (
-          <Animated.View entering={FadeInDown.delay(160).duration(motion.standard)} style={styles.actions}>
-            <Pressable style={styles.ghostBtn} onPress={() => router.push('/correct')}>
-              <Text style={styles.ghostBtnText}>{t('result.correct')}</Text>
-            </Pressable>
-          </Animated.View>
-        )}
+        <View style={styles.servingBox}>
+          <Text style={styles.servingTitle}>{t('result.servingSize')}</Text>
+          <View style={styles.servingRow}>
+            {servingOptions.map((label, i) => (
+              <Pressable
+                key={label}
+                onPress={() => setServingIdx(i)}
+                style={[styles.servingChip, servingIdx === i && styles.servingChipActive]}
+              >
+                <Text
+                  style={[
+                    styles.servingChipText,
+                    servingIdx === i && styles.servingChipTextActive,
+                  ]}
+                >
+                  {label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
 
-        <Pressable style={styles.primaryHit} onPress={() => router.replace('/camera')}>
-          <LinearGradient
-            colors={[...colors.gradientPrimary]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={[styles.primaryBtn, styles.scanAgain]}
-          >
-            <Text style={styles.primaryBtnText}>{t('result.scanAgain')}</Text>
-          </LinearGradient>
+        <Pressable style={styles.changeRow} onPress={() => router.push('/correct')}>
+          <Ionicons name="swap-horizontal" size={18} color={colors.textSecondary} />
+          <Text style={styles.changeLabel}>{t('result.notRight')}</Text>
+          <Text style={styles.changeAction}>{t('result.correct')}</Text>
         </Pressable>
       </ScrollView>
-    </LinearGradient>
+
+      <View
+        style={[
+          styles.footer,
+          { paddingBottom: Math.max(insets.bottom, 16) + 12 },
+        ]}
+      >
+        <Pressable style={styles.ghostBtn} onPress={() => router.replace('/camera')}>
+          <Text style={styles.ghostBtnText}>{t('result.scanAgain')}</Text>
+        </Pressable>
+        <Pressable style={styles.saveHit} onPress={() => router.replace('/camera')}>
+          <LinearGradient colors={[...colors.gradientPrimary]} style={styles.saveBtn}>
+            <Text style={styles.saveBtnText}>{t('result.save')}</Text>
+          </LinearGradient>
+        </Pressable>
+      </View>
+    </View>
   );
 }
 
@@ -134,12 +162,30 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.bg,
   },
-  wash: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 200,
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingBottom: 8,
+  },
+  iconBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.bgCard,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconBtnSpacer: {
+    width: 44,
+  },
+  topTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.textSecondary,
   },
   content: {
     paddingHorizontal: spacing.lg - 4,
@@ -154,73 +200,120 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginBottom: spacing.lg,
   },
-  lowBox: {
-    marginTop: spacing.lg - 4,
-    padding: spacing.lg - 4,
+  servingBox: {
+    marginTop: 14,
+    backgroundColor: colors.bgElevated,
+    borderWidth: 1,
+    borderColor: colors.border,
     borderRadius: radius.xl,
-    backgroundColor: 'rgba(251,191,36,0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(251,191,36,0.28)',
-  },
-  lowTitle: {
-    ...typography.h3,
-    color: colors.text,
-    marginBottom: spacing.sm,
-  },
-  lowBody: {
-    ...typography.bodySm,
-    color: colors.textSecondary,
-    marginBottom: spacing.md,
-  },
-  correctBtn: {
-    alignSelf: 'flex-start',
-    backgroundColor: colors.accentSoft,
-    borderWidth: 1,
-    borderColor: colors.accentBorder,
     paddingHorizontal: 18,
-    paddingVertical: 12,
-    borderRadius: radius.md,
-    minHeight: 44,
-    justifyContent: 'center',
+    paddingVertical: 16,
   },
-  correctBtnText: {
-    ...typography.button,
+  servingTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    marginBottom: 10,
+  },
+  servingRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  servingChip: {
+    flex: 1,
+    paddingVertical: 11,
+    borderRadius: 12,
+    backgroundColor: colors.bg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+  },
+  servingChipActive: {
+    backgroundColor: colors.accentSoft,
+    borderColor: colors.accentBorder,
+  },
+  servingChipText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  servingChipTextActive: {
     color: colors.accent,
   },
-  actions: {
-    marginTop: 18,
-  },
-  ghostBtn: {
-    alignSelf: 'stretch',
-    minHeight: 52,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: colors.borderStrong,
-    backgroundColor: 'transparent',
+  changeRow: {
+    marginTop: 14,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.md,
+    gap: 12,
+    backgroundColor: colors.bgElevated,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 16,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
   },
-  ghostBtnText: {
-    ...typography.button,
+  changeLabel: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '500',
     color: colors.text,
   },
+  changeAction: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.accent,
+  },
+  footer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    flexDirection: 'row',
+    gap: 12,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    backgroundColor: colors.bg,
+  },
+  ghostBtn: {
+    flex: 1,
+    height: 54,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ghostBtnText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  saveHit: {
+    flex: 1.4,
+  },
+  saveBtn: {
+    height: 54,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  saveBtnText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.textInverse,
+  },
   primaryHit: {
-    marginTop: spacing.lg,
     alignSelf: 'stretch',
+    maxWidth: 300,
   },
   primaryBtn: {
     minHeight: 52,
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: spacing.md,
   },
   primaryBtnText: {
     ...typography.button,
     color: colors.textInverse,
-  },
-  scanAgain: {
-    marginTop: 0,
   },
 });

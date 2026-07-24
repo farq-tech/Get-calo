@@ -4,7 +4,7 @@ import { lookupByClassId } from '@/db/nutrition';
 import { analyzeFoodWithAi, AI_MODEL_VERSION, isAiScanEnabled } from '@/inference/aiVision';
 import { isLowConfidence, loadModel, runInference } from '@/inference/yolo';
 import { useScanStore, useSettingsStore } from '@/hooks/useSettingsStore';
-import type { ScanStepId } from '@/components/ScanProgressOverlay';
+import { SCAN_STEP_ORDER, type ScanStepId } from '@/components/ScanProgressOverlay';
 import type { Detection, ScanResult } from '@/types';
 
 function wait(ms: number) {
@@ -38,6 +38,15 @@ export function useInference(): UseInferenceReturn {
     setPreviewUri(null);
   }, []);
 
+  const advanceSteps = useCallback(async (until: ScanStepId) => {
+    const target = SCAN_STEP_ORDER.indexOf(until);
+    for (let i = 0; i <= target; i++) {
+      if (cancelledRef.current) return;
+      setScanStep(SCAN_STEP_ORDER[i]);
+      await wait(i === 0 ? 180 : 420 + Math.random() * 180);
+    }
+  }, []);
+
   const scan = useCallback(
     async (imageUri: string): Promise<ScanResult | null> => {
       cancelledRef.current = false;
@@ -45,24 +54,19 @@ export function useInference(): UseInferenceReturn {
       setPreviewUri(imageUri);
       setError(null);
       try {
-        setScanStep('uploading');
-        await wait(280);
-        if (cancelledRef.current) return null;
+        setScanStep('recognize');
 
-        setScanStep('identifying');
-
-        // Primary path: cloud AI vision (Gemini)
         if (isAiScanEnabled()) {
           try {
+            const progress = (async () => {
+              await advanceSteps('portion');
+            })();
+
             const ai = await analyzeFoodWithAi(imageUri, locale);
+            await progress;
             if (cancelledRef.current) return null;
 
-            setScanStep('calculating');
-            await wait(220);
-            if (cancelledRef.current) return null;
-
-            setScanStep('preparing');
-            await wait(220);
+            await advanceSteps('finalize');
             if (cancelledRef.current) return null;
 
             const detection: Detection = {
@@ -86,29 +90,23 @@ export function useInference(): UseInferenceReturn {
             setLastResult(result);
             return result;
           } catch (aiErr) {
-            console.warn('[calora] AI scan failed, falling back to on-device', aiErr);
-            // continue to YOLO fallback below
+            console.warn('[snapcal] cloud scan failed, falling back on-device', aiErr);
           }
         }
 
-        // Fallback: on-device YOLO
         await loadModel();
         if (cancelledRef.current) return null;
-        const { detections, backend, modelVersion } = await runInference(imageUri, {
+        setScanStep('ingredients');
+        const { detections, modelVersion } = await runInference(imageUri, {
           confidenceThreshold: threshold,
         });
         if (cancelledRef.current) return null;
 
-        setScanStep('calculating');
+        await advanceSteps('finalize');
+        if (cancelledRef.current) return null;
+
         const top = detections[0] ?? null;
         const nutrition = top ? await lookupByClassId(top.classId) : null;
-        await wait(200);
-        if (cancelledRef.current) return null;
-
-        setScanStep('preparing');
-        await wait(200);
-        if (cancelledRef.current) return null;
-
         const confidence = top?.confidence ?? 0;
         const result: ScanResult = {
           imageUri,
@@ -119,13 +117,12 @@ export function useInference(): UseInferenceReturn {
           lowConfidence: !top || isLowConfidence(confidence, threshold),
           modelVersion,
           inferredAt: new Date().toISOString(),
-          usedFallback: backend === 'mock',
+          usedFallback: !top,
         };
         setLastResult(result);
         return result;
       } catch (err) {
-        if (cancelledRef.current) return null;
-        const message = err instanceof Error ? err.message : 'Inference failed';
+        const message = err instanceof Error ? err.message : 'Scan failed';
         setError(message);
         return null;
       } finally {
@@ -136,7 +133,7 @@ export function useInference(): UseInferenceReturn {
         }
       }
     },
-    [locale, setLastResult, threshold],
+    [advanceSteps, locale, setLastResult, threshold],
   );
 
   const resetError = useCallback(() => setError(null), []);

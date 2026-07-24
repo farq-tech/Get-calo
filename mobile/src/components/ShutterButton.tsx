@@ -87,7 +87,7 @@ export function ShutterButton({ onPress, disabled, busy }: ShutterButtonProps) {
   );
 }
 
-const SIZE = 78;
+const SIZE = 80;
 
 const styles = StyleSheet.create({
   hit: {

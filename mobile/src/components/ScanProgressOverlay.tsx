@@ -1,16 +1,18 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import type { ImageSourcePropType } from 'react-native';
 import {
-  ActivityIndicator,
   Image,
   Pressable,
   StyleSheet,
   Text,
-  useWindowDimensions,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import Animated, {
   Easing,
+  FadeIn,
+  FadeInUp,
+  interpolate,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
@@ -21,12 +23,27 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
 import { colors } from '@/theme/colors';
-import { motion, radius, spacing } from '@/theme/tokens';
+import { motion } from '@/theme/tokens';
 import { typography } from '@/theme/typography';
 
-export type ScanStepId = 'uploading' | 'identifying' | 'calculating' | 'preparing';
+export type ScanStepId =
+  | 'recognize'
+  | 'ingredients'
+  | 'portion'
+  | 'calories'
+  | 'profile'
+  | 'finalize';
 
-const STEP_ORDER: ScanStepId[] = ['uploading', 'identifying', 'calculating', 'preparing'];
+export const SCAN_STEP_ORDER: ScanStepId[] = [
+  'recognize',
+  'ingredients',
+  'portion',
+  'calories',
+  'profile',
+  'finalize',
+];
+
+type Phase = 'type' | 'credit' | 'engine';
 
 type Props = {
   imageUri: string;
@@ -35,136 +52,73 @@ type Props = {
   imageSource?: ImageSourcePropType;
 };
 
-function stepState(current: ScanStepId, id: ScanStepId): 'done' | 'active' | 'pending' {
-  const ci = STEP_ORDER.indexOf(current);
-  const ii = STEP_ORDER.indexOf(id);
-  if (ii < ci) return 'done';
-  if (ii === ci) return 'active';
-  return 'pending';
-}
-
-function StepIcon({ state }: { state: 'done' | 'active' | 'pending' }) {
-  if (state === 'done') {
-    return (
-      <View style={[styles.stepIcon, styles.stepIconDone]}>
-        <Ionicons name="checkmark" size={14} color={colors.white} />
-      </View>
-    );
-  }
-  if (state === 'active') {
-    return (
-      <View style={[styles.stepIcon, styles.stepIconActive]}>
-        <ActivityIndicator size="small" color={colors.lightAccent} />
-      </View>
-    );
-  }
-  return <View style={[styles.stepIcon, styles.stepIconPending]} />;
-}
-
-function CornerBracket({ position }: { position: 'tl' | 'tr' | 'bl' | 'br' }) {
-  const edge = 28;
-  const thick = 3;
-  const base = {
-    position: 'absolute' as const,
-    width: edge,
-    height: edge,
-    borderColor: colors.accent,
-  };
-  if (position === 'tl') {
-    return (
-      <View
-        style={[
-          base,
-          {
-            top: -2,
-            left: -2,
-            borderTopWidth: thick,
-            borderLeftWidth: thick,
-            borderTopLeftRadius: radius.xl,
-          },
-        ]}
-      />
-    );
-  }
-  if (position === 'tr') {
-    return (
-      <View
-        style={[
-          base,
-          {
-            top: -2,
-            right: -2,
-            borderTopWidth: thick,
-            borderRightWidth: thick,
-            borderTopRightRadius: radius.xl,
-          },
-        ]}
-      />
-    );
-  }
-  if (position === 'bl') {
-    return (
-      <View
-        style={[
-          base,
-          {
-            bottom: -2,
-            left: -2,
-            borderBottomWidth: thick,
-            borderLeftWidth: thick,
-            borderBottomLeftRadius: radius.xl,
-          },
-        ]}
-      />
-    );
-  }
-  return (
-    <View
-      style={[
-        base,
-        {
-          bottom: -2,
-          right: -2,
-          borderBottomWidth: thick,
-          borderRightWidth: thick,
-          borderBottomRightRadius: radius.xl,
-        },
-      ]}
-    />
-  );
-}
-
 /**
- * Bright analysis surface — Design System light tokens + teal scan sweep.
+ * Cinematic analyzing screen — matches Calora App.html prototype.
+ * Signature: types "Sattam" → credit → Sattam engine + live steps.
  */
 export function ScanProgressOverlay({ imageUri, step, onBack, imageSource }: Props) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
-  const frameSize = Math.min(width - 48, 340);
+  const { height } = useWindowDimensions();
 
-  const scanProgress = useSharedValue(0);
+  const [phase, setPhase] = useState<Phase>('type');
+  const [typed, setTyped] = useState(0);
+  const [cursorOn, setCursorOn] = useState(true);
+
+  const sweep = useSharedValue(0);
+  const ken = useSharedValue(0);
+  const glow = useSharedValue(0);
+
+  const word = 'Sattam';
+  const stepIndex = SCAN_STEP_ORDER.indexOf(step);
 
   useEffect(() => {
-    scanProgress.value = 0;
-    scanProgress.value = withRepeat(
-      withTiming(1, {
-        duration: motion.scanSweep,
-        easing: Easing.bezier(0.4, 0, 0.4, 1),
-      }),
+    setPhase('type');
+    setTyped(0);
+    setCursorOn(true);
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    const typeMs = 140;
+    for (let i = 1; i <= word.length; i++) {
+      timers.push(setTimeout(() => setTyped(i), 320 + i * typeMs));
+    }
+    const done = 320 + word.length * typeMs;
+    timers.push(setTimeout(() => setCursorOn(false), done + 150));
+    timers.push(setTimeout(() => setPhase('credit'), done + 340));
+    timers.push(setTimeout(() => setPhase('engine'), done + 1750));
+    return () => timers.forEach(clearTimeout);
+  }, []);
+
+  useEffect(() => {
+    sweep.value = withRepeat(
+      withTiming(1, { duration: 3400, easing: Easing.bezier(0.45, 0, 0.55, 1) }),
       -1,
       false,
     );
-  }, [scanProgress]);
+    ken.value = withRepeat(
+      withTiming(1, { duration: 7000, easing: Easing.bezier(0.3, 0, 0.5, 1) }),
+      -1,
+      true,
+    );
+    glow.value = withRepeat(
+      withTiming(1, { duration: 3200, easing: Easing.inOut(Easing.ease) }),
+      -1,
+      true,
+    );
+  }, [glow, ken, sweep]);
 
-  const scanLineStyle = useAnimatedStyle(() => {
-    const t = scanProgress.value;
-    const fade = t < 0.08 ? t / 0.08 : t > 0.92 ? (1 - t) / 0.08 : 1;
-    return {
-      transform: [{ translateY: t * (frameSize - 8) }],
-      opacity: Math.max(0.2, fade),
-    };
-  });
+  const sweepStyle = useAnimatedStyle(() => ({
+    top: interpolate(sweep.value, [0, 1], [-40, height * 0.75]),
+    opacity: interpolate(sweep.value, [0, 0.15, 0.85, 1], [0.2, 1, 1, 0.2]),
+  }));
+
+  const kenStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: interpolate(ken.value, [0, 1], [1.05, 1.18]) }],
+  }));
+
+  const glowStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(glow.value, [0, 1], [0.55, 1]),
+    transform: [{ scale: interpolate(glow.value, [0, 1], [0.94, 1.06]) }],
+  }));
 
   const source =
     imageSource ??
@@ -172,61 +126,92 @@ export function ScanProgressOverlay({ imageUri, step, onBack, imageSource }: Pro
       ? undefined
       : { uri: imageUri });
 
+  const visibleSteps = useMemo(() => {
+    return SCAN_STEP_ORDER.slice(0, Math.max(1, stepIndex + 1)).map((id, i) => ({
+      id,
+      done: i < stepIndex,
+      active: i === stepIndex,
+      label: t(`camera.analyzeMsgs.${id}`),
+    }));
+  }, [stepIndex, t]);
+
+  const showCredit = phase === 'credit' || phase === 'engine';
+  const showEngine = phase === 'engine';
+  const showWord = phase === 'type' || phase === 'credit';
+
   return (
-    <View style={[styles.root, { paddingTop: insets.top + 4, paddingBottom: insets.bottom + 24 }]}>
-      <View style={styles.topBar}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t('common.back')}
-          onPress={onBack}
-          hitSlop={12}
-          style={styles.backBtn}
-        >
-          <Ionicons name="chevron-back" size={26} color={colors.lightText} />
-        </Pressable>
-      </View>
+    <View style={[styles.root, { paddingTop: insets.top }]}>
+      <Animated.View style={[styles.bgWrap, kenStyle]}>
+        {source ? (
+          <Image source={source} style={styles.bgImage} blurRadius={18} />
+        ) : (
+          <View style={[styles.bgImage, styles.bgFallback]} />
+        )}
+        <View style={styles.bgTint} />
+      </Animated.View>
+
+      <Animated.View style={[styles.glow, glowStyle]} pointerEvents="none" />
+      <Animated.View style={[styles.sweep, sweepStyle]} pointerEvents="none" />
+      <View style={styles.vignette} pointerEvents="none" />
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t('common.back')}
+        onPress={onBack}
+        hitSlop={12}
+        style={[styles.backBtn, { top: insets.top + 8 }]}
+      >
+        <Ionicons name="chevron-back" size={22} color={colors.text} />
+      </Pressable>
 
       <View style={styles.center}>
-        <View style={[styles.frameOuter, { width: frameSize, height: frameSize }]}>
-          <View style={styles.frameInner}>
-            {source ? (
-              <Image source={source} style={styles.preview} resizeMode="cover" />
-            ) : (
-              <View style={[styles.preview, styles.previewFallback]} />
-            )}
-            <View style={styles.frameShade} pointerEvents="none" />
-            <Animated.View style={[styles.scanLine, scanLineStyle]} pointerEvents="none">
-              <View style={styles.scanLineCore} />
-              <View style={styles.scanLineGlow} />
+        <Text style={[styles.credit, { opacity: showCredit ? 1 : 0 }]}>
+          {t('creditBy')}
+        </Text>
+
+        <View style={styles.signatureBlock}>
+          {showWord ? (
+            <View style={styles.wordRow}>
+              <Text style={styles.typedWord}>{word.slice(0, typed)}</Text>
+              {cursorOn ? <View style={styles.cursor} /> : null}
+            </View>
+          ) : null}
+
+          {showEngine ? (
+            <Animated.View entering={FadeIn.duration(motion.emphasized)} style={styles.engine}>
+              <Text style={styles.engineName}>Sattam</Text>
+              <Text style={styles.engineSub}>{t('engineSub')}</Text>
             </Animated.View>
-          </View>
-          <CornerBracket position="tl" />
-          <CornerBracket position="tr" />
-          <CornerBracket position="bl" />
-          <CornerBracket position="br" />
+          ) : null}
         </View>
 
         <View style={styles.steps}>
-          {STEP_ORDER.map((id) => {
-            const state = stepState(step, id);
-            return (
-              <View key={id} style={styles.stepRow}>
-                <StepIcon state={state} />
-                <Text
-                  style={[
-                    styles.stepText,
-                    state === 'active' && styles.stepTextActive,
-                    state === 'pending' && styles.stepTextPending,
-                    state === 'done' && styles.stepTextDone,
-                  ]}
-                >
-                  {t(`camera.steps.${id}`)}
-                </Text>
+          {visibleSteps.map((row) => (
+            <Animated.View key={row.id} entering={FadeInUp.duration(420)} style={styles.stepRow}>
+              <View style={[styles.stepIcon, row.done && styles.stepIconDone]}>
+                {row.done ? (
+                  <Ionicons name="checkmark" size={11} color={colors.accent} />
+                ) : row.active ? (
+                  <View style={styles.stepDot} />
+                ) : null}
               </View>
-            );
-          })}
+              <Text
+                style={[
+                  styles.stepText,
+                  row.done && styles.stepTextDone,
+                  row.active && styles.stepTextActive,
+                ]}
+              >
+                {row.label}
+              </Text>
+            </Animated.View>
+          ))}
         </View>
       </View>
+
+      <Text style={[styles.footer, { bottom: Math.max(insets.bottom, 16) + 28 }]}>
+        {t('camera.onDevice')}
+      </Text>
     </View>
   );
 }
@@ -234,115 +219,171 @@ export function ScanProgressOverlay({ imageUri, step, onBack, imageSource }: Pro
 const styles = StyleSheet.create({
   root: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: colors.lightBg,
+    backgroundColor: colors.bg,
     zIndex: 40,
+    overflow: 'hidden',
   },
-  topBar: {
-    height: 48,
-    paddingHorizontal: spacing.sm,
-    justifyContent: 'center',
+  bgWrap: {
+    ...StyleSheet.absoluteFillObject,
+    margin: -48,
+  },
+  bgImage: {
+    ...StyleSheet.absoluteFillObject,
+    width: '100%',
+    height: '100%',
+  },
+  bgFallback: {
+    backgroundColor: '#0E1512',
+  },
+  bgTint: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(10,14,13,0.45)',
+  },
+  glow: {
+    position: 'absolute',
+    top: '28%',
+    left: '50%',
+    marginLeft: -130,
+    width: 260,
+    height: 210,
+    borderRadius: 130,
+    backgroundColor: 'rgba(45,212,168,0.14)',
+  },
+  sweep: {
+    position: 'absolute',
+    left: '-10%',
+    right: '-10%',
+    height: 120,
+    backgroundColor: 'transparent',
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: 'rgba(45,212,168,0.08)',
+    shadowColor: colors.accent,
+    shadowOpacity: 0.35,
+    shadowRadius: 24,
+  },
+  vignette: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(7,10,9,0.35)',
   },
   backBtn: {
+    position: 'absolute',
+    left: 16,
     width: 44,
     height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(28,38,34,0.75)',
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 5,
   },
   center: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: spacing.lg,
-    gap: 36,
+    paddingHorizontal: 32,
   },
-  frameOuter: {
-    borderRadius: radius.xl + 4,
-    borderWidth: 1.5,
-    borderColor: colors.accentBorder,
-    padding: 0,
-    position: 'relative',
+  credit: {
+    minHeight: 20,
+    fontSize: 12,
+    fontWeight: '500',
+    letterSpacing: 1.6,
+    textTransform: 'uppercase',
+    color: colors.textSecondary,
+    marginBottom: 10,
   },
-  frameInner: {
-    flex: 1,
-    borderRadius: radius.xl,
-    overflow: 'hidden',
-    backgroundColor: colors.lightSurfaceMuted,
+  signatureBlock: {
+    minHeight: 72,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  preview: {
-    ...StyleSheet.absoluteFillObject,
+  wordRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  frameShade: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(10,14,13,0.04)',
+  typedWord: {
+    fontFamily: typography.brand.fontFamily,
+    fontSize: 46,
+    fontWeight: '600',
+    letterSpacing: 0.4,
+    color: colors.text,
+    textShadowColor: 'rgba(45,212,168,0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 28,
   },
-  scanLine: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 4,
-    height: 2,
-  },
-  scanLineCore: {
-    height: 2,
+  cursor: {
+    width: 3,
+    height: 42,
+    borderRadius: 2,
+    marginLeft: 7,
     backgroundColor: colors.accent,
-    shadowColor: colors.accent,
-    shadowOpacity: 0.45,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 0 },
   },
-  scanLineGlow: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: -8,
-    height: 18,
-    backgroundColor: 'rgba(45,212,168,0.28)',
+  engine: {
+    alignItems: 'center',
+    gap: 6,
+  },
+  engineName: {
+    fontFamily: typography.brand.fontFamily,
+    fontSize: 24,
+    fontWeight: '600',
+    letterSpacing: 0.2,
+    color: colors.text,
+  },
+  engineSub: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: colors.textSecondary,
   },
   steps: {
-    width: '100%',
-    maxWidth: 320,
-    gap: 18,
-    paddingHorizontal: spacing.sm,
+    marginTop: 30,
+    width: 250,
+    minHeight: 120,
+    gap: 11,
   },
   stepRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
+    gap: 11,
   },
   stepIcon: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 19,
+    height: 19,
+    borderRadius: 10,
+    backgroundColor: 'rgba(45,212,168,0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(45,212,168,0.3)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   stepIconDone: {
-    backgroundColor: colors.lightAccent,
+    backgroundColor: 'rgba(45,212,168,0.16)',
   },
-  stepIconActive: {
-    backgroundColor: 'transparent',
-  },
-  stepIconPending: {
-    borderWidth: 2,
-    borderColor: 'rgba(10,14,13,0.14)',
-    backgroundColor: 'transparent',
+  stepDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.accent,
   },
   stepText: {
-    ...typography.body,
-    fontSize: 17,
-    color: colors.lightText,
+    fontSize: 14,
+    fontWeight: '500',
+    color: colors.textMuted,
   },
   stepTextActive: {
-    color: colors.lightText,
-    fontFamily: typography.h3.fontFamily,
-  },
-  stepTextPending: {
-    color: colors.lightTextSecondary,
+    color: colors.text,
   },
   stepTextDone: {
-    color: colors.lightText,
+    color: colors.textSecondary,
   },
-  previewFallback: {
-    backgroundColor: colors.lightSurfaceMuted,
+  footer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    textAlign: 'center',
+    fontSize: 12,
+    color: colors.textMuted,
   },
 });
