@@ -1,7 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
-  "installCommand": "cd .. && npm install --workspace=admin --workspace=@calorie-scanner/shared",
-  "buildCommand": "cd .. && npm run build --workspace=admin",
-  "outputDirectory": ".next"
+  "installCommand": "npm install --legacy-peer-deps",
+  "buildCommand": "npm run build"
 }
