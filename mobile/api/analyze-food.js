@@ -1,9 +1,9 @@
 /**
- * SnapCal food vision endpoint (Vercel Serverless, CommonJS).
+ * Calora food vision endpoint (Vercel Serverless, CommonJS).
  * POST { imageBase64, mimeType?, locale? } → food + nutrition JSON
  */
 
-const SYSTEM_PROMPT = `You are SnapCal, an expert nutrition assistant for Gulf / Saudi everyday food, drinks, snacks, and grocery products.
+const SYSTEM_PROMPT = `You are Calora, an expert nutrition assistant for Gulf / Saudi everyday food, drinks, snacks, and grocery products.
 
 Identify the main edible item in the photo. Prefer specific product names when clear (Pepsi can, laban bottle, basmati rice pack).
 
