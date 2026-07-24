@@ -1,0 +1,53 @@
+# EAS Build upload ignore — exclude multi-GB monorepo paths, keep mobile workspace
+# (Prioritized over .gitignore when present.)
+
+# Dependencies (reinstalled on EAS)
+node_modules/
+.venv/
+venv/
+__pycache__/
+
+# Env & secrets
+.env
+.env.*
+!.env.example
+
+# ML / training artifacts (~10 GB)
+ml/
+data/
+models/
+runs/
+wandb/
+.ultralytics/
+*.pt
+*.onnx
+*.cache
+
+# Admin dashboard (separate Vercel deploy)
+admin/
+
+# Docs / infra not needed for mobile binary
+docs/
+supabase/
+packages/
+scripts/
+render.yaml
+.vercel
+
+# Mobile native caches (EAS prebuild generates these)
+mobile/.expo/
+mobile/ios/
+mobile/android/
+mobile/node_modules/
+mobile/.env
+mobile/.env.*
+
+# Git
+.git/
+
+# IDE / logs
+.cursor/
+*.log
+coverage/
+.pytest_cache/
+.DS_Store

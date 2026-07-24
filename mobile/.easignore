@@ -1,0 +1,19 @@
+# Exclude parent monorepo paths from EAS upload when building from mobile/
+../ml/
+../admin/
+../docs/
+../supabase/
+../packages/
+../data/
+../models/
+../scripts/
+../node_modules/
+../.git/
+../.venv/
+../venv/
+.expo/
+ios/
+android/
+node_modules/
+.env
+.env.*
