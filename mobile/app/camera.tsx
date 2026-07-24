@@ -97,7 +97,7 @@ export default function CameraScreen() {
         <StatusBar style={showAnalyze ? 'dark' : 'light'} />
         <LinearGradient colors={[...colors.gradientDeep]} style={styles.fill}>
           <View style={[styles.permission, { paddingTop: insets.top + 48 }]}>
-            <BrandMark size="hero" subtitle={t('tagline')} />
+            <BrandMark size="hero" subtitle={t('tagline')} showCredit />
             <Text style={styles.permTitle}>{t('camera.webTitle')}</Text>
             <Text style={styles.permBody}>{t('camera.webBody')}</Text>
 

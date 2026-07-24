@@ -8,13 +8,22 @@ import { typography } from '@/theme/typography';
 interface BrandMarkProps {
   size?: 'hero' | 'sm' | 'nav';
   subtitle?: string;
-  /** Override brand text; defaults to i18n `brand` (Calora / كالورا) */
+  /** Show designer credit under the brand */
+  showCredit?: boolean;
+  /** Override brand text; defaults to i18n `brand` (SnapCal) */
   title?: string;
   style?: StyleProp<ViewStyle>;
   textStyle?: StyleProp<TextStyle>;
 }
 
-export function BrandMark({ size = 'hero', subtitle, title, style, textStyle }: BrandMarkProps) {
+export function BrandMark({
+  size = 'hero',
+  subtitle,
+  showCredit = false,
+  title,
+  style,
+  textStyle,
+}: BrandMarkProps) {
   const { t } = useTranslation();
   const brandStyle =
     size === 'hero' ? typography.brand : size === 'sm' ? typography.brandSm : styles.navBrand;
@@ -23,6 +32,7 @@ export function BrandMark({ size = 'hero', subtitle, title, style, textStyle }: 
     <View style={[styles.wrap, style]} accessibilityRole="header">
       <Text style={[brandStyle, styles.brand, textStyle]}>{title ?? t('brand')}</Text>
       {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+      {showCredit ? <Text style={styles.credit}>{t('credit')}</Text> : null}
     </View>
   );
 }
@@ -47,5 +57,12 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.textSecondary,
     marginTop: 4,
+  },
+  credit: {
+    ...typography.caption,
+    color: colors.textMuted,
+    marginTop: 10,
+    textAlign: 'center',
+    maxWidth: 280,
   },
 });

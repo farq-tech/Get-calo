@@ -1,9 +1,10 @@
 {
-  "brand": "Calora",
+  "brand": "SnapCal",
   "tagline": "Scan food, drinks — anything.",
+  "credit": "Designed & Developed by Sattam Alkhalaf",
   "camera": {
     "permissionTitle": "Camera access needed",
-    "permissionBody": "Calora scans food, drinks, and snacks on your device. Photos stay private unless you send feedback.",
+    "permissionBody": "SnapCal scans food, drinks, and snacks on your device. Photos stay private unless you send feedback.",
     "grantPermission": "Enable camera",
     "scanning": "Scanning…",
     "holdSteady": "Point at food or a drink",
@@ -67,7 +68,7 @@
     "updateAvailable": "Update available",
     "haptics": "Haptics",
     "about": "About",
-    "aboutBody": "Calora uses AI vision to recognize food, drinks, and grocery items, then estimates calories and macros. If the match is wrong, pick from the catalog.",
+    "aboutBody": "SnapCal uses AI vision to recognize food, drinks, and grocery items, then estimates calories and macros. If the match is wrong, pick from the catalog.",
     "privacy": "Photos are sent securely for AI analysis, then discarded. Corrections stay on this device by default."
   },
   "common": {
