@@ -6,7 +6,11 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
-      "source": "/((?!_expo/|assets/).*)",
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
+    },
+    {
+      "source": "/((?!_expo/|assets/|api/).*)",
       "destination": "/index.html"
     }
   ],

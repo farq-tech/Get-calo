@@ -67,8 +67,8 @@
     "updateAvailable": "Update available",
     "haptics": "Haptics",
     "about": "About",
-    "aboutBody": "Calora runs a bundled on-device YOLO model trained on grocery staples and everyday foods/drinks. If the match is wrong, pick from the catalog.",
-    "privacy": "Your scans stay on this device by default."
+    "aboutBody": "Calora uses AI vision to recognize food, drinks, and grocery items, then estimates calories and macros. If the match is wrong, pick from the catalog.",
+    "privacy": "Photos are sent securely for AI analysis, then discarded. Corrections stay on this device by default."
   },
   "common": {
     "back": "Back",
