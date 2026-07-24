@@ -23,7 +23,8 @@
         "CFBundleLocalizations": [
           "en",
           "ar"
-        ]
+        ],
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
