@@ -22,11 +22,16 @@ android/
 .env.*.local
 
 # Native model artifacts (large binaries)
+# Large trained weights — keep the shipped Calora ONNX in-repo for web/native bundling.
 assets/models/*.onnx
+!assets/models/best.onnx
 assets/models/*.tflite
 assets/models/*.mlmodel
 assets/models/*.mlpackage
 !assets/models/.gitkeep
+!assets/models/labels.json
+!assets/models/manifest.json
+!assets/models/nutrition.sqlite
 
 npm-debug.*
 yarn-debug.*

@@ -1,0 +1,28 @@
+{
+  "created_at": "2026-07-24T08:19:42.650460+00:00",
+  "platform": "Linux-6.12.94+-x86_64-with-glibc2.39",
+  "imgsz": 640,
+  "num_classes": 40,
+  "class_key": "item_identity",
+  "farq_readonly": true,
+  "synthetic_box": {
+    "x_center": 0.5,
+    "y_center": 0.5,
+    "width": 0.9,
+    "height": 0.9,
+    "note": "Trained with synthetic centered boxes (~90% of frame) because product photos have no GT bounding boxes."
+  },
+  "artifacts": {
+    "best_pt": "/agent/ml/models/exports/farq_auto_v1/best.pt",
+    "labels_json": "/agent/ml/models/exports/farq_auto_v1/labels.json",
+    "nutrition_sqlite": "/agent/ml/models/exports/farq_auto_v1/nutrition.sqlite",
+    "onnx": "/agent/ml/models/exports/farq_auto_v1/best.onnx",
+    "coreml": null,
+    "tflite": null
+  },
+  "on_device_formats": [
+    "onnx",
+    "coreml",
+    "tflite"
+  ]
+}

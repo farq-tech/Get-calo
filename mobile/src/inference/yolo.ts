@@ -1,18 +1,28 @@
 /**
  * On-device food/drink scan for Calora.
  *
- * Production path: onnxruntime-react-native (custom/dev client).
- * Expo Go / web / missing native module: catalog-backed mock so you can still
- * scan meals, drinks, and snacks and correct them from the full nutrition list.
+ * Runs bundled YOLOv8 ONNX (40 Farq food/drink classes) via:
+ * - Web: onnxruntime-web (WASM)
+ * - Native custom builds: onnxruntime-react-native
+ *
+ * Falls back to catalog mock only if the model cannot load.
  */
 
+import { Asset } from 'expo-asset';
 import { Platform } from 'react-native';
 
 import type { Detection } from '@/types';
 import { LOW_CONFIDENCE_THRESHOLD } from '@/types';
 import { getBundledNutritionSeed } from '@/db/seed';
 
-export const BUNDLED_MODEL_VERSION = '1.0.0-bundled';
+import { getModelClass } from './labels';
+import { runOnnx, getOnnxSession, getOrtLoadError } from './ortSession';
+import { decodeYoloOutput } from './postprocess';
+import { preprocessImageUri } from './preprocess';
+
+import demoMeal from '../../assets/samples/demo-meal.jpg';
+
+export const BUNDLED_MODEL_VERSION = '1.0.0-onnx-farq40';
 
 export type InferenceBackend = 'onnx' | 'tflite' | 'coreml' | 'mock';
 
@@ -28,20 +38,6 @@ export interface RunInferenceOptions {
 }
 
 let session: InferenceSession | null = null;
-let ortModule: typeof import('onnxruntime-react-native') | null = null;
-let ortLoadAttempted = false;
-
-async function tryLoadOrt(): Promise<typeof import('onnxruntime-react-native') | null> {
-  if (ortLoadAttempted) return ortModule;
-  ortLoadAttempted = true;
-  try {
-    ortModule = await import('onnxruntime-react-native');
-    return ortModule;
-  } catch {
-    ortModule = null;
-    return null;
-  }
-}
 
 export function preferredBackend(): InferenceBackend {
   if (Platform.OS === 'ios') return 'coreml';
@@ -52,8 +48,8 @@ export function preferredBackend(): InferenceBackend {
 export async function loadModel(): Promise<InferenceSession> {
   if (session?.ready) return session;
 
-  const ort = await tryLoadOrt();
-  if (ort) {
+  const onnx = await getOnnxSession();
+  if (onnx) {
     session = {
       backend: 'onnx',
       modelVersion: BUNDLED_MODEL_VERSION,
@@ -62,6 +58,7 @@ export async function loadModel(): Promise<InferenceSession> {
     return session;
   }
 
+  console.warn('[calora/yolo] ONNX unavailable, using mock', getOrtLoadError());
   session = {
     backend: 'mock',
     modelVersion: `${BUNDLED_MODEL_VERSION}-mock`,
@@ -84,7 +81,8 @@ function hashUri(uri: string): number {
 }
 
 function catalogSize(): number {
-  return Math.max(1, getBundledNutritionSeed().length);
+  // Mock only samples model classes 0–39 so IDs stay aligned with nutrition seed.
+  return Math.min(40, Math.max(1, getBundledNutritionSeed().length));
 }
 
 function mockDetections(uri: string, threshold: number): Detection[] {
@@ -93,6 +91,7 @@ function mockDetections(uri: string, threshold: number): Detection[] {
   const classId = seed % classCount;
   const confidence = 0.55 + ((seed % 40) / 100);
   const jitter = ((seed >> 8) % 20) / 100;
+  const modelClass = getModelClass(classId);
 
   const primary: Detection = {
     classId,
@@ -103,20 +102,46 @@ function mockDetections(uri: string, threshold: number): Detection[] {
       width: 0.55 - jitter * 0.1,
       height: 0.5 - jitter * 0.1,
     },
+    label: modelClass?.nameEn,
   };
 
-  const secondary: Detection = {
-    classId: (classId + 7) % classCount,
-    confidence: Math.max(0.15, primary.confidence - 0.28),
-    bbox: {
-      x: 0.55,
-      y: 0.55,
-      width: 0.3,
-      height: 0.28,
-    },
-  };
+  return [primary].filter((d) => d.confidence >= threshold * 0.5);
+}
 
-  return [primary, secondary].filter((d) => d.confidence >= threshold * 0.5);
+/** Resolve demo / non-file URIs to a real sample meal photo. */
+export async function resolveScanUri(uri: string): Promise<string> {
+  if (uri.startsWith('web-demo:') || uri.startsWith('demo:')) {
+    const asset = Asset.fromModule(demoMeal);
+    await asset.downloadAsync();
+    return asset.localUri ?? asset.uri;
+  }
+  return uri;
+}
+
+async function runOnnxInference(
+  uri: string,
+  threshold: number,
+  maxDetections: number,
+): Promise<Detection[] | null> {
+  try {
+    const resolved = await resolveScanUri(uri);
+    const { tensor, meta } = await preprocessImageUri(resolved);
+    const output = await runOnnx(tensor);
+    if (!output) return null;
+
+    // Slightly lower gate for decode, then filter to user threshold.
+    const decoded = decodeYoloOutput(output.data, output.dims, meta, {
+      confidenceThreshold: Math.min(0.25, threshold),
+      maxDetections: Math.max(maxDetections, 10),
+    });
+
+    return decoded
+      .filter((d) => d.confidence >= threshold)
+      .slice(0, maxDetections);
+  } catch (err) {
+    console.warn('[calora/yolo] onnx inference failed', err);
+    return null;
+  }
 }
 
 export async function runInference(
@@ -128,19 +153,25 @@ export async function runInference(
 
   const active = session ?? (await loadModel());
 
-  if (active.backend === 'onnx' && ortModule) {
-    console.info('[calora/yolo] ONNX module present — using catalog match until model is wired');
+  if (active.backend === 'onnx') {
+    const detections = await runOnnxInference(uri, threshold, maxDetections);
+    if (detections) {
+      return {
+        detections,
+        backend: 'onnx',
+        modelVersion: active.modelVersion,
+      };
+    }
   }
 
   const detections = mockDetections(uri, threshold)
-    .filter((d) => d.confidence >= threshold * 0.5)
     .sort((a, b) => b.confidence - a.confidence)
     .slice(0, maxDetections);
 
   return {
     detections,
-    backend: active.backend,
-    modelVersion: active.modelVersion,
+    backend: 'mock',
+    modelVersion: `${active.modelVersion}-mock`.replace(/-mock-mock$/, '-mock'),
   };
 }
 
