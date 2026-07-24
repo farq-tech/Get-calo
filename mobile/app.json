@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Calora",
-    "slug": "calora",
+    "slug": "get-calo",
     "version": "1.0.0",
     "orientation": "portrait",
     "scheme": "calora",
@@ -62,8 +62,9 @@
         "origin": false
       },
       "eas": {
-        "projectId": "calora-placeholder"
+        "projectId": "c32f6466-2d14-45e7-a9ad-17ba2ee4179c"
       }
-    }
+    },
+    "owner": "farq-tech"
   }
 }
