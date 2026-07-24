@@ -61,7 +61,7 @@
     "updateAvailable": "Update available",
     "haptics": "Haptics",
     "about": "About",
-    "aboutBody": "Calora runs a bundled on-device YOLO model trained on 51 everyday foods and drinks. If the match is wrong, pick from the catalog. Cloud is optional for feedback and model updates.",
+    "aboutBody": "Calora runs a bundled on-device YOLO model trained on 69 everyday foods and drinks (including Arabic coffee, karak, laban, Pepsi, juices…). If the match is wrong, pick from the catalog.",
     "privacy": "Your scans stay on this device by default."
   },
   "common": {

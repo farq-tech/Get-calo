@@ -1,5 +1,5 @@
 {
-  "num_classes": 51,
+  "num_classes": 69,
   "classes": [
     {
       "class_id": 0,
@@ -12,7 +12,7 @@
       "fat": 0.3,
       "serving_size_g": 182,
       "category": "fruit",
-      "image_count": 11
+      "image_count": 12
     },
     {
       "class_id": 1,
@@ -25,7 +25,7 @@
       "fat": 0.4,
       "serving_size_g": 118,
       "category": "fruit",
-      "image_count": 11
+      "image_count": 12
     },
     {
       "class_id": 2,
@@ -38,7 +38,7 @@
       "fat": 0.2,
       "serving_size_g": 131,
       "category": "fruit",
-      "image_count": 11
+      "image_count": 12
     },
     {
       "class_id": 3,
@@ -51,7 +51,7 @@
       "fat": 0.5,
       "serving_size_g": 152,
       "category": "fruit",
-      "image_count": 10
+      "image_count": 11
     },
     {
       "class_id": 4,
@@ -64,7 +64,7 @@
       "fat": 0.2,
       "serving_size_g": 154,
       "category": "fruit",
-      "image_count": 11
+      "image_count": 12
     },
     {
       "class_id": 5,
@@ -77,7 +77,7 @@
       "fat": 0.2,
       "serving_size_g": 151,
       "category": "fruit",
-      "image_count": 10
+      "image_count": 11
     },
     {
       "class_id": 6,
@@ -90,7 +90,7 @@
       "fat": 0.6,
       "serving_size_g": 165,
       "category": "fruit",
-      "image_count": 10
+      "image_count": 11
     },
     {
       "class_id": 7,
@@ -103,7 +103,7 @@
       "fat": 0,
       "serving_size_g": 24,
       "category": "fruit",
-      "image_count": 8
+      "image_count": 9
     },
     {
       "class_id": 8,
@@ -116,7 +116,7 @@
       "fat": 0.3,
       "serving_size_g": 100,
       "category": "vegetable",
-      "image_count": 10
+      "image_count": 11
     },
     {
       "class_id": 9,
@@ -129,7 +129,7 @@
       "fat": 0.2,
       "serving_size_g": 123,
       "category": "vegetable",
-      "image_count": 11
+      "image_count": 12
     },
     {
       "class_id": 10,
@@ -142,7 +142,7 @@
       "fat": 0.1,
       "serving_size_g": 104,
       "category": "vegetable",
-      "image_count": 11
+      "image_count": 12
     },
     {
       "class_id": 11,
@@ -155,7 +155,7 @@
       "fat": 0.1,
       "serving_size_g": 61,
       "category": "vegetable",
-      "image_count": 11
+      "image_count": 12
     },
     {
       "class_id": 12,
@@ -168,7 +168,7 @@
       "fat": 17,
       "serving_size_g": 117,
       "category": "fast_food",
-      "image_count": 11
+      "image_count": 12
     },
     {
       "class_id": 13,
@@ -181,7 +181,7 @@
       "fat": 0.6,
       "serving_size_g": 156,
       "category": "vegetable",
-      "image_count": 11
+      "image_count": 12
     },
     {
       "class_id": 14,
@@ -194,7 +194,7 @@
       "fat": 3.6,
       "serving_size_g": 100,
       "category": "protein",
-      "image_count": 11
+      "image_count": 12
     },
     {
       "class_id": 15,
@@ -207,7 +207,7 @@
       "fat": 20,
       "serving_size_g": 120,
       "category": "fast_food",
-      "image_count": 11
+      "image_count": 12
     },
     {
       "class_id": 16,
@@ -220,7 +220,7 @@
       "fat": 22,
       "serving_size_g": 150,
       "category": "protein",
-      "image_count": 11
+      "image_count": 12
     },
     {
       "class_id": 17,
@@ -233,7 +233,7 @@
       "fat": 7,
       "serving_size_g": 120,
       "category": "protein",
-      "image_count": 11
+      "image_count": 12
     },
     {
       "class_id": 18,
@@ -246,7 +246,7 @@
       "fat": 11,
       "serving_size_g": 100,
       "category": "protein",
-      "image_count": 11
+      "image_count": 12
     },
     {
       "class_id": 19,
@@ -259,7 +259,7 @@
       "fat": 15,
       "serving_size_g": 120,
       "category": "protein",
-      "image_count": 11
+      "image_count": 12
     },
     {
       "class_id": 20,
@@ -272,7 +272,7 @@
       "fat": 28,
       "serving_size_g": 220,
       "category": "fast_food",
-      "image_count": 11
+      "image_count": 12
     },
     {
       "class_id": 21,
@@ -285,7 +285,7 @@
       "fat": 10,
       "serving_size_g": 107,
       "category": "meal",
-      "image_count": 11
+      "image_count": 12
     },
     {
       "class_id": 22,
@@ -298,7 +298,7 @@
       "fat": 12,
       "serving_size_g": 300,
       "category": "meal",
-      "image_count": 11
+      "image_count": 12
     },
     {
       "class_id": 23,
@@ -311,7 +311,7 @@
       "fat": 0.4,
       "serving_size_g": 158,
       "category": "grain",
-      "image_count": 11
+      "image_count": 12
     },
     {
       "class_id": 24,
@@ -324,7 +324,7 @@
       "fat": 24,
       "serving_size_g": 280,
       "category": "meal",
-      "image_count": 11
+      "image_count": 12
     },
     {
       "class_id": 25,
@@ -337,7 +337,7 @@
       "fat": 18,
       "serving_size_g": 220,
       "category": "meal",
-      "image_count": 11
+      "image_count": 12
     },
     {
       "class_id": 26,
@@ -350,7 +350,7 @@
       "fat": 16,
       "serving_size_g": 150,
       "category": "meal",
-      "image_count": 11
+      "image_count": 12
     },
     {
       "class_id": 27,
@@ -363,7 +363,7 @@
       "fat": 22,
       "serving_size_g": 400,
       "category": "meal",
-      "image_count": 9
+      "image_count": 10
     },
     {
       "class_id": 28,
@@ -376,7 +376,7 @@
       "fat": 18,
       "serving_size_g": 380,
       "category": "meal",
-      "image_count": 11
+      "image_count": 12
     },
     {
       "class_id": 29,
@@ -389,7 +389,7 @@
       "fat": 5,
       "serving_size_g": 150,
       "category": "meal",
-      "image_count": 11
+      "image_count": 12
     },
     {
       "class_id": 30,
@@ -402,7 +402,7 @@
       "fat": 14,
       "serving_size_g": 200,
       "category": "meal",
-      "image_count": 11
+      "image_count": 12
     },
     {
       "class_id": 31,
@@ -415,7 +415,7 @@
       "fat": 3,
       "serving_size_g": 250,
       "category": "meal",
-      "image_count": 11
+      "image_count": 12
     },
     {
       "class_id": 32,
@@ -428,46 +428,46 @@
       "fat": 16,
       "serving_size_g": 100,
       "category": "fast_food",
-      "image_count": 11
+      "image_count": 12
     },
     {
       "class_id": 33,
-      "item_identity": "essential.coffee",
-      "name_en": "Black Coffee",
-      "name_ar": "قهوة سادة",
-      "calories": 5,
-      "protein": 0.3,
+      "item_identity": "essential.water",
+      "name_en": "Water",
+      "name_ar": "ماء",
+      "calories": 0,
+      "protein": 0,
       "carbs": 0,
       "fat": 0,
-      "serving_size_g": 240,
+      "serving_size_g": 250,
       "category": "drink",
-      "image_count": 10
+      "image_count": 11
     },
     {
       "class_id": 34,
-      "item_identity": "essential.cappuccino",
-      "name_en": "Cappuccino",
-      "name_ar": "كابتشينو",
-      "calories": 120,
-      "protein": 6,
-      "carbs": 10,
-      "fat": 6,
-      "serving_size_g": 180,
+      "item_identity": "essential.arabic_coffee",
+      "name_en": "Arabic Coffee",
+      "name_ar": "قهوة عربية",
+      "calories": 5,
+      "protein": 0,
+      "carbs": 1,
+      "fat": 0,
+      "serving_size_g": 60,
       "category": "drink",
-      "image_count": 11
+      "image_count": 9
     },
     {
       "class_id": 35,
-      "item_identity": "essential.latte",
-      "name_en": "Latte",
-      "name_ar": "لاتيه",
-      "calories": 150,
-      "protein": 8,
-      "carbs": 12,
-      "fat": 7,
-      "serving_size_g": 240,
+      "item_identity": "essential.karak",
+      "name_en": "Karak Tea",
+      "name_ar": "شاي كرك",
+      "calories": 120,
+      "protein": 4,
+      "carbs": 18,
+      "fat": 3.5,
+      "serving_size_g": 200,
       "category": "drink",
-      "image_count": 11
+      "image_count": 10
     },
     {
       "class_id": 36,
@@ -480,10 +480,127 @@
       "fat": 0,
       "serving_size_g": 200,
       "category": "drink",
-      "image_count": 10
+      "image_count": 11
     },
     {
       "class_id": 37,
+      "item_identity": "essential.green_tea",
+      "name_en": "Green Tea",
+      "name_ar": "شاي أخضر",
+      "calories": 2,
+      "protein": 0,
+      "carbs": 0,
+      "fat": 0,
+      "serving_size_g": 240,
+      "category": "drink",
+      "image_count": 10
+    },
+    {
+      "class_id": 38,
+      "item_identity": "essential.mint_tea",
+      "name_en": "Mint Tea",
+      "name_ar": "شاي بالنعناع",
+      "calories": 30,
+      "protein": 0,
+      "carbs": 7,
+      "fat": 0,
+      "serving_size_g": 200,
+      "category": "drink",
+      "image_count": 10
+    },
+    {
+      "class_id": 39,
+      "item_identity": "essential.coffee",
+      "name_en": "Black Coffee",
+      "name_ar": "قهوة سادة",
+      "calories": 5,
+      "protein": 0.3,
+      "carbs": 0,
+      "fat": 0,
+      "serving_size_g": 240,
+      "category": "drink",
+      "image_count": 11
+    },
+    {
+      "class_id": 40,
+      "item_identity": "essential.cappuccino",
+      "name_en": "Cappuccino",
+      "name_ar": "كابتشينو",
+      "calories": 120,
+      "protein": 6,
+      "carbs": 10,
+      "fat": 6,
+      "serving_size_g": 180,
+      "category": "drink",
+      "image_count": 12
+    },
+    {
+      "class_id": 41,
+      "item_identity": "essential.latte",
+      "name_en": "Latte",
+      "name_ar": "لاتيه",
+      "calories": 150,
+      "protein": 8,
+      "carbs": 12,
+      "fat": 7,
+      "serving_size_g": 240,
+      "category": "drink",
+      "image_count": 12
+    },
+    {
+      "class_id": 42,
+      "item_identity": "essential.iced_coffee",
+      "name_en": "Iced Coffee",
+      "name_ar": "آيس كوفي",
+      "calories": 180,
+      "protein": 4,
+      "carbs": 30,
+      "fat": 4,
+      "serving_size_g": 350,
+      "category": "drink",
+      "image_count": 10
+    },
+    {
+      "class_id": 43,
+      "item_identity": "essential.laban",
+      "name_en": "Laban",
+      "name_ar": "لبن",
+      "calories": 90,
+      "protein": 6,
+      "carbs": 10,
+      "fat": 2.5,
+      "serving_size_g": 200,
+      "category": "drink",
+      "image_count": 7
+    },
+    {
+      "class_id": 44,
+      "item_identity": "essential.milk",
+      "name_en": "Milk",
+      "name_ar": "حليب",
+      "calories": 150,
+      "protein": 8,
+      "carbs": 12,
+      "fat": 8,
+      "serving_size_g": 244,
+      "category": "drink",
+      "image_count": 10
+    },
+    {
+      "class_id": 45,
+      "item_identity": "essential.chocolate_milk",
+      "name_en": "Chocolate Milk",
+      "name_ar": "حليب بالشوكولاتة",
+      "calories": 190,
+      "protein": 8,
+      "carbs": 26,
+      "fat": 5,
+      "serving_size_g": 250,
+      "category": "drink",
+      "image_count": 10
+    },
+    {
+      "class_id": 46,
       "item_identity": "essential.orange_juice",
       "name_en": "Orange Juice",
       "name_ar": "عصير برتقال",
@@ -493,36 +610,140 @@
       "fat": 0.3,
       "serving_size_g": 240,
       "category": "drink",
-      "image_count": 11
+      "image_count": 12
     },
     {
-      "class_id": 38,
+      "class_id": 47,
+      "item_identity": "essential.apple_juice",
+      "name_en": "Apple Juice",
+      "name_ar": "عصير تفاح",
+      "calories": 114,
+      "protein": 0.2,
+      "carbs": 28,
+      "fat": 0.3,
+      "serving_size_g": 240,
+      "category": "drink",
+      "image_count": 10
+    },
+    {
+      "class_id": 48,
+      "item_identity": "essential.mango_juice",
+      "name_en": "Mango Juice",
+      "name_ar": "عصير مانجو",
+      "calories": 130,
+      "protein": 1,
+      "carbs": 32,
+      "fat": 0.5,
+      "serving_size_g": 240,
+      "category": "drink",
+      "image_count": 10
+    },
+    {
+      "class_id": 49,
+      "item_identity": "essential.lemonade",
+      "name_en": "Lemonade",
+      "name_ar": "ليمونادة",
+      "calories": 100,
+      "protein": 0.5,
+      "carbs": 26,
+      "fat": 0,
+      "serving_size_g": 240,
+      "category": "drink",
+      "image_count": 10
+    },
+    {
+      "class_id": 50,
+      "item_identity": "essential.lemon_mint",
+      "name_en": "Lemon Mint",
+      "name_ar": "ليمون نعناع",
+      "calories": 70,
+      "protein": 0.5,
+      "carbs": 17,
+      "fat": 0,
+      "serving_size_g": 300,
+      "category": "drink",
+      "image_count": 10
+    },
+    {
+      "class_id": 51,
       "item_identity": "essential.cola",
-      "name_en": "Cola",
-      "name_ar": "كولا",
+      "name_en": "Cola / Pepsi",
+      "name_ar": "كولا / بيبسي",
       "calories": 140,
       "protein": 0,
       "carbs": 39,
       "fat": 0,
       "serving_size_g": 330,
       "category": "drink",
-      "image_count": 11
+      "image_count": 12
     },
     {
-      "class_id": 39,
-      "item_identity": "essential.water",
-      "name_en": "Water",
-      "name_ar": "ماء",
+      "class_id": 52,
+      "item_identity": "essential.diet_cola",
+      "name_en": "Diet Cola",
+      "name_ar": "كولا دايت",
       "calories": 0,
       "protein": 0,
       "carbs": 0,
+      "fat": 0,
+      "serving_size_g": 330,
+      "category": "drink",
+      "image_count": 10
+    },
+    {
+      "class_id": 53,
+      "item_identity": "essential.sprite",
+      "name_en": "Sprite / 7up",
+      "name_ar": "سفن أب / سبرايت",
+      "calories": 140,
+      "protein": 0,
+      "carbs": 38,
+      "fat": 0,
+      "serving_size_g": 330,
+      "category": "drink",
+      "image_count": 10
+    },
+    {
+      "class_id": 54,
+      "item_identity": "essential.energy_drink",
+      "name_en": "Energy Drink",
+      "name_ar": "مشروب طاقة",
+      "calories": 160,
+      "protein": 0,
+      "carbs": 40,
       "fat": 0,
       "serving_size_g": 250,
       "category": "drink",
       "image_count": 10
     },
     {
-      "class_id": 40,
+      "class_id": 55,
+      "item_identity": "essential.vimto",
+      "name_en": "Vimto",
+      "name_ar": "فيمتو",
+      "calories": 90,
+      "protein": 0,
+      "carbs": 22,
+      "fat": 0,
+      "serving_size_g": 250,
+      "category": "drink",
+      "image_count": 7
+    },
+    {
+      "class_id": 56,
+      "item_identity": "essential.hot_chocolate",
+      "name_en": "Hot Chocolate",
+      "name_ar": "هوت شوكلت",
+      "calories": 240,
+      "protein": 8,
+      "carbs": 30,
+      "fat": 10,
+      "serving_size_g": 240,
+      "category": "drink",
+      "image_count": 10
+    },
+    {
+      "class_id": 57,
       "item_identity": "essential.smoothie",
       "name_en": "Smoothie",
       "name_ar": "سموثي",
@@ -532,10 +753,23 @@
       "fat": 2,
       "serving_size_g": 300,
       "category": "drink",
-      "image_count": 11
+      "image_count": 12
     },
     {
-      "class_id": 41,
+      "class_id": 58,
+      "item_identity": "essential.protein_shake",
+      "name_en": "Protein Shake",
+      "name_ar": "بروتين شيك",
+      "calories": 180,
+      "protein": 25,
+      "carbs": 8,
+      "fat": 3,
+      "serving_size_g": 300,
+      "category": "drink",
+      "image_count": 8
+    },
+    {
+      "class_id": 59,
       "item_identity": "essential.croissant",
       "name_en": "Croissant",
       "name_ar": "كرواسون",
@@ -545,10 +779,10 @@
       "fat": 12,
       "serving_size_g": 57,
       "category": "bakery",
-      "image_count": 11
+      "image_count": 12
     },
     {
-      "class_id": 42,
+      "class_id": 60,
       "item_identity": "essential.pancake",
       "name_en": "Pancakes",
       "name_ar": "بان كيك",
@@ -558,10 +792,10 @@
       "fat": 14,
       "serving_size_g": 150,
       "category": "breakfast",
-      "image_count": 10
+      "image_count": 11
     },
     {
-      "class_id": 43,
+      "class_id": 61,
       "item_identity": "essential.waffle",
       "name_en": "Waffle",
       "name_ar": "وافل",
@@ -571,10 +805,10 @@
       "fat": 10,
       "serving_size_g": 75,
       "category": "breakfast",
-      "image_count": 11
+      "image_count": 12
     },
     {
-      "class_id": 44,
+      "class_id": 62,
       "item_identity": "essential.bread",
       "name_en": "Bread",
       "name_ar": "خبز",
@@ -584,10 +818,10 @@
       "fat": 1,
       "serving_size_g": 30,
       "category": "bakery",
-      "image_count": 11
+      "image_count": 12
     },
     {
-      "class_id": 45,
+      "class_id": 63,
       "item_identity": "essential.ice_cream",
       "name_en": "Ice Cream",
       "name_ar": "آيس كريم",
@@ -597,10 +831,10 @@
       "fat": 10,
       "serving_size_g": 80,
       "category": "dessert",
-      "image_count": 11
+      "image_count": 12
     },
     {
-      "class_id": 46,
+      "class_id": 64,
       "item_identity": "essential.cake",
       "name_en": "Cake",
       "name_ar": "كيك",
@@ -610,10 +844,10 @@
       "fat": 16,
       "serving_size_g": 80,
       "category": "dessert",
-      "image_count": 11
+      "image_count": 12
     },
     {
-      "class_id": 47,
+      "class_id": 65,
       "item_identity": "essential.donut",
       "name_en": "Donut",
       "name_ar": "دونات",
@@ -623,10 +857,10 @@
       "fat": 16,
       "serving_size_g": 60,
       "category": "dessert",
-      "image_count": 11
+      "image_count": 12
     },
     {
-      "class_id": 48,
+      "class_id": 66,
       "item_identity": "essential.kunafa",
       "name_en": "Kunafa",
       "name_ar": "كنافة",
@@ -636,10 +870,10 @@
       "fat": 22,
       "serving_size_g": 120,
       "category": "dessert",
-      "image_count": 11
+      "image_count": 12
     },
     {
-      "class_id": 49,
+      "class_id": 67,
       "item_identity": "essential.chocolate",
       "name_en": "Chocolate",
       "name_ar": "شوكولاتة",
@@ -649,10 +883,10 @@
       "fat": 14,
       "serving_size_g": 45,
       "category": "dessert",
-      "image_count": 11
+      "image_count": 12
     },
     {
-      "class_id": 50,
+      "class_id": 68,
       "item_identity": "essential.yogurt",
       "name_en": "Yogurt",
       "name_ar": "زبادي",
@@ -662,7 +896,7 @@
       "fat": 3.5,
       "serving_size_g": 170,
       "category": "dairy",
-      "image_count": 10
+      "image_count": 11
     }
   ],
   "note": "Classes are canonical item_identity values. Never use provider_items as class labels. Multiple provider images for the same food share one class_id."

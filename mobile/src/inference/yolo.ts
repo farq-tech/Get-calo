@@ -22,7 +22,7 @@ import { preprocessImageUri } from './preprocess';
 
 import demoMeal from '../../assets/samples/demo-meal.jpg';
 
-export const BUNDLED_MODEL_VERSION = '1.1.0-essential51';
+export const BUNDLED_MODEL_VERSION = '1.2.0-essential69-drinks';
 
 export type InferenceBackend = 'onnx' | 'tflite' | 'coreml' | 'mock';
 

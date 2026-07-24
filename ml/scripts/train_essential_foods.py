@@ -55,8 +55,8 @@ URLS_PER = int(os.environ.get("ESSENTIAL_URLS_PER", "5"))
 SYNTH_PER = int(os.environ.get("ESSENTIAL_SYNTH_PER", "4"))
 SEED = 42
 DATASET_NAME = "essential_yolo"
-RUN_NAME = "essential_v1"
-EXPORT_NAME = "essential_v1"
+RUN_NAME = os.environ.get("ESSENTIAL_RUN", "essential_v2")
+EXPORT_NAME = os.environ.get("ESSENTIAL_EXPORT", "essential_v2")
 
 
 def _safe(identity: str) -> str:
