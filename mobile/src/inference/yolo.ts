@@ -15,14 +15,14 @@ import type { Detection } from '@/types';
 import { LOW_CONFIDENCE_THRESHOLD } from '@/types';
 import { getBundledNutritionSeed } from '@/db/seed';
 
-import { getModelClass } from './labels';
+import { getModelClass, getModelClasses } from './labels';
 import { runOnnx, getOnnxSession, getOrtLoadError } from './ortSession';
 import { decodeYoloOutput } from './postprocess';
 import { preprocessImageUri } from './preprocess';
 
 import demoMeal from '../../assets/samples/demo-meal.jpg';
 
-export const BUNDLED_MODEL_VERSION = '1.0.0-onnx-farq40';
+export const BUNDLED_MODEL_VERSION = '1.1.0-essential51';
 
 export type InferenceBackend = 'onnx' | 'tflite' | 'coreml' | 'mock';
 
@@ -81,8 +81,7 @@ function hashUri(uri: string): number {
 }
 
 function catalogSize(): number {
-  // Mock only samples model classes 0–39 so IDs stay aligned with nutrition seed.
-  return Math.min(40, Math.max(1, getBundledNutritionSeed().length));
+  return Math.max(1, getModelClasses().length || getBundledNutritionSeed().length);
 }
 
 function mockDetections(uri: string, threshold: number): Detection[] {
