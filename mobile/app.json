@@ -20,7 +20,10 @@
         "NSCameraUsageDescription": "Calora needs camera access to scan meals and estimate calories on-device.",
         "NSPhotoLibraryUsageDescription": "Calora may save corrected meal photos for model improvement.",
         "CFBundleAllowMixedLocalizations": true,
-        "CFBundleLocalizations": ["en", "ar"]
+        "CFBundleLocalizations": [
+          "en",
+          "ar"
+        ]
       }
     },
     "android": {
@@ -52,7 +55,16 @@
           "image": "./assets/splash-icon.png",
           "imageWidth": 200
         }
-      ]
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 24
+          }
+        }
+      ],
+      "./plugins/withOnnxruntimeEasFix"
     ],
     "experiments": {
       "typedRoutes": true
