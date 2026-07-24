@@ -1,0 +1,14 @@
+{
+  "raw_items": 15368,
+  "unique_classes": 5369,
+  "food_classes": 4505,
+  "non_food_filtered": 864,
+  "sources": {
+    "usda_sr_legacy": 2562,
+    "unmatched": 1868,
+    "open_food_facts": 75
+  },
+  "train_subset": 300,
+  "nutrition_path": "/agent/ml/data/datasets/grocery_tamimi/nutrition.json",
+  "mobile_sample_rows": 2706
+}

@@ -11,7 +11,13 @@
     "webTitle": "Scan anything on the web",
     "webBody": "Upload a photo of food, a drink, or a snack — then confirm or search the catalog for the right item.",
     "uploadPhoto": "Upload photo",
-    "demoScan": "Run demo scan"
+    "demoScan": "Run demo scan",
+    "steps": {
+      "uploading": "Uploading image...",
+      "identifying": "Identifying food items...",
+      "calculating": "Calculating calories...",
+      "preparing": "Preparing results..."
+    }
   },
   "result": {
     "calories": "Calories",
@@ -61,7 +67,7 @@
     "updateAvailable": "Update available",
     "haptics": "Haptics",
     "about": "About",
-    "aboutBody": "Calora runs a bundled on-device YOLO model trained on 69 everyday foods and drinks (including Arabic coffee, karak, laban, Pepsi, juices…). If the match is wrong, pick from the catalog.",
+    "aboutBody": "Calora runs a bundled on-device YOLO model trained on grocery staples and everyday foods/drinks. If the match is wrong, pick from the catalog.",
     "privacy": "Your scans stay on this device by default."
   },
   "common": {
