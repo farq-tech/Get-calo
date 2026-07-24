@@ -102,8 +102,8 @@ const styles = StyleSheet.create({
     height: SIZE,
     borderRadius: SIZE / 2,
     padding: 4,
-    borderWidth: 2,
-    borderColor: colors.accentBorder,
+    borderWidth: 2.5,
+    borderColor: 'rgba(45,212,168,0.4)',
     backgroundColor: 'rgba(10,14,13,0.35)',
   },
   gradient: {

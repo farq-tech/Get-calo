@@ -1,25 +1,25 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
-  FlatList,
+  I18nManager,
   Pressable,
+  ScrollView,
   StyleSheet,
-  Switch,
   Text,
   TextInput,
   View,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import * as Haptics from 'expo-haptics';
+import { Ionicons } from '@expo/vector-icons';
 
 import { searchNutrition } from '@/db/nutrition';
 import { submitFeedback } from '@/services/feedback';
 import { useScanStore, useSettingsStore } from '@/hooks/useSettingsStore';
 import { colors } from '@/theme/colors';
 import { typography } from '@/theme/typography';
+import { radius } from '@/theme/tokens';
 import type { NutritionItem } from '@/types';
 
 export default function CorrectScreen() {
@@ -30,19 +30,14 @@ export default function CorrectScreen() {
   const applyNutritionOverride = useScanStore((s) => s.applyNutritionOverride);
   const locale = useSettingsStore((s) => s.locale);
   const hapticsEnabled = useSettingsStore((s) => s.hapticsEnabled);
+  const shareFeedbackEnabled = useSettingsStore((s) => s.shareFeedbackEnabled);
 
   const [query, setQuery] = useState('');
   const [items, setItems] = useState<NutritionItem[]>([]);
-  const [selected, setSelected] = useState<NutritionItem | null>(null);
-  const [customName, setCustomName] = useState('');
-  const [includePhoto, setIncludePhoto] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
-    void searchNutrition(query, 80).then((rows) => {
+    void searchNutrition(query, 40).then((rows) => {
       if (alive) setItems(rows);
     });
     return () => {
@@ -56,150 +51,143 @@ export default function CorrectScreen() {
     [locale],
   );
 
-  const onSubmit = async () => {
-    const name = selected ? displayName(selected) : customName.trim();
-    if (!name) return;
+  const suggestions = useMemo(() => items.slice(0, 4), [items]);
+  const heading = query.trim() ? t('correct.results') : t('correct.suggestions');
 
-    setSubmitting(true);
-    setError(null);
-    setMessage(null);
-
-    // Always apply the pick locally so calories update for food/drink/anything.
-    if (selected) {
-      applyNutritionOverride(selected);
-    }
-
-    const feedback = await submitFeedback({
-      predictedClassId: result?.topDetection?.classId ?? null,
-      predictedItemIdentity: result?.nutrition?.itemIdentity ?? null,
-      predictedConfidence: result?.confidence ?? null,
-      correctedItemIdentity: selected?.itemIdentity ?? null,
-      correctedName: name,
-      imageUri: includePhoto ? result?.imageUri : null,
-      locale,
-    });
-
-    setSubmitting(false);
-
+  const onPick = async (item: NutritionItem) => {
+    const name = displayName(item);
+    applyNutritionOverride(item);
     if (hapticsEnabled) {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(
         () => undefined,
       );
     }
-
-    // Local override already applied; feedback sync is best-effort.
-    setMessage(feedback.ok ? t('correct.success') : t('correct.savedLocally'));
-    setTimeout(() => router.back(), 700);
+    if (shareFeedbackEnabled) {
+      void submitFeedback({
+        predictedClassId: result?.topDetection?.classId ?? null,
+        predictedItemIdentity: result?.nutrition?.itemIdentity ?? null,
+        predictedConfidence: result?.confidence ?? null,
+        correctedItemIdentity: item.itemIdentity,
+        correctedName: name,
+        imageUri: null,
+        locale,
+      }).catch(() => undefined);
+    }
+    router.back();
   };
 
   return (
-    <LinearGradient colors={[...colors.gradientDeep]} style={styles.fill}>
+    <View style={styles.fill}>
       <View
         style={[
           styles.header,
           { paddingTop: insets.top + 12, paddingBottom: 12 },
         ]}
       >
-        <Pressable onPress={() => router.back()} hitSlop={12}>
-          <Text style={styles.cancel}>{t('common.cancel')}</Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('common.back')}
+          onPress={() => router.back()}
+          style={styles.iconBtn}
+        >
+          <Ionicons
+            name={I18nManager.isRTL ? 'chevron-forward' : 'chevron-back'}
+            size={18}
+            color={colors.text}
+          />
         </Pressable>
-        <Text style={styles.title}>{t('correct.title')}</Text>
-        <View style={styles.headerSpacer} />
+        <View style={styles.searchBox}>
+          <Ionicons name="search" size={17} color={colors.textMuted} />
+          <TextInput
+            value={query}
+            onChangeText={setQuery}
+            placeholder={t('correct.searchPlaceholder')}
+            placeholderTextColor={colors.textMuted}
+            style={styles.input}
+            autoCorrect={false}
+            autoCapitalize="none"
+            autoFocus
+          />
+        </View>
       </View>
 
-      <View style={styles.searchWrap}>
-        <TextInput
-          value={query}
-          onChangeText={setQuery}
-          placeholder={t('correct.searchPlaceholder')}
-          placeholderTextColor={colors.textMuted}
-          style={styles.input}
-          autoCorrect={false}
-          autoCapitalize="none"
-        />
-      </View>
-
-      <Text style={styles.section}>{t('correct.suggested')}</Text>
-
-      <FlatList
-        data={items}
-        keyExtractor={(item) => item.itemIdentity}
+      <ScrollView
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={styles.list}
-        ListEmptyComponent={
-          <Text style={styles.empty}>{t('correct.noResults')}</Text>
-        }
-        renderItem={({ item }) => {
-          const active = selected?.itemIdentity === item.itemIdentity;
-          return (
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: Math.max(insets.bottom, 16) + 24 },
+        ]}
+      >
+        <View style={styles.chips}>
+          {suggestions.map((item) => (
             <Pressable
-              onPress={() => {
-                setSelected(item);
-                setCustomName('');
-              }}
-              style={[styles.row, active && styles.rowActive]}
+              key={item.itemIdentity}
+              onPress={() => setQuery(displayName(item))}
+              style={styles.chip}
             >
-              <Text style={styles.rowTitle}>{displayName(item)}</Text>
-              <Text style={styles.rowMeta}>
-                {Math.round(item.caloriesKcal)} {t('result.kcal')}
-              </Text>
+              <Text style={styles.chipText}>{displayName(item)}</Text>
             </Pressable>
-          );
-        }}
-        ListFooterComponent={
-          <View style={styles.footer}>
-            <Text style={styles.section}>{t('correct.customName')}</Text>
-            <TextInput
-              value={customName}
-              onChangeText={(text) => {
-                setCustomName(text);
-                setSelected(null);
-              }}
-              placeholder={t('correct.customPlaceholder')}
-              placeholderTextColor={colors.textMuted}
-              style={styles.input}
-            />
+          ))}
+        </View>
 
-            <View style={styles.switchRow}>
-              <Text style={styles.switchLabel}>{t('correct.includePhoto')}</Text>
-              <Switch
-                value={includePhoto}
-                onValueChange={setIncludePhoto}
-                trackColor={{ false: colors.bgMuted, true: colors.accentMuted }}
-                thumbColor={includePhoto ? colors.accent : colors.textMuted}
+        <Text style={styles.section}>{heading}</Text>
+        <View style={styles.results}>
+          {items.length === 0 ? (
+            <Text style={styles.empty}>{t('correct.noResults')}</Text>
+          ) : (
+            items.map((item) => (
+              <ResultRow
+                key={item.itemIdentity}
+                item={item}
+                name={displayName(item)}
+                kcalLabel={t('result.kcal')}
+                perServingLabel={t('result.perServing')}
+                gramsLabel={t('result.grams')}
+                onPress={() => void onPick(item)}
               />
-            </View>
+            ))
+          )}
+        </View>
+      </ScrollView>
+    </View>
+  );
+}
 
-            {message ? <Text style={styles.success}>{message}</Text> : null}
-            {error ? <Text style={styles.error}>{error}</Text> : null}
-
-            <Pressable
-              style={[
-                styles.submit,
-                (!selected && !customName.trim()) || submitting
-                  ? styles.submitDisabled
-                  : null,
-              ]}
-              disabled={(!selected && !customName.trim()) || submitting}
-              onPress={() => void onSubmit()}
-            >
-              {submitting ? (
-                <ActivityIndicator color={colors.textInverse} />
-              ) : (
-                <Text
-                  style={[
-                    styles.submitText,
-                    (!selected && !customName.trim()) && styles.submitTextDisabled,
-                  ]}
-                >
-                  {submitting ? t('correct.submitting') : t('correct.submit')}
-                </Text>
-              )}
-            </Pressable>
-          </View>
-        }
-      />
-    </LinearGradient>
+function ResultRow({
+  item,
+  name,
+  kcalLabel,
+  perServingLabel,
+  gramsLabel,
+  onPress,
+}: {
+  item: NutritionItem;
+  name: string;
+  kcalLabel: string;
+  perServingLabel: string;
+  gramsLabel: string;
+  onPress: () => void;
+}) {
+  const initial = name.trim().charAt(0).toUpperCase() || '?';
+  return (
+    <Pressable onPress={onPress} style={styles.row}>
+      <View style={styles.initial}>
+        <Text style={styles.initialText}>{initial}</Text>
+      </View>
+      <View style={styles.rowBody}>
+        <Text style={styles.rowTitle} numberOfLines={1}>
+          {name}
+        </Text>
+        <Text style={styles.rowMeta}>
+          {perServingLabel} · {Math.round(item.servingSizeG)}
+          {gramsLabel}
+        </Text>
+      </View>
+      <Text style={styles.kcal} numberOfLines={1}>
+        {Math.round(item.caloriesKcal)} {kcalLabel}
+      </Text>
+    </Pressable>
   );
 }
 
@@ -211,48 +199,72 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 12,
     paddingHorizontal: 20,
   },
-  cancel: {
-    ...typography.body,
-    color: colors.accent,
-    width: 72,
+  iconBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.bgCard,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  title: {
-    ...typography.h2,
-    color: colors.text,
+  searchBox: {
     flex: 1,
-    textAlign: 'center',
-  },
-  headerSpacer: {
-    width: 72,
-  },
-  searchWrap: {
-    paddingHorizontal: 20,
-    marginBottom: 8,
+    height: 48,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: colors.accent,
+    backgroundColor: colors.bgElevated,
+    shadowColor: colors.accent,
+    shadowOpacity: 0.12,
+    shadowRadius: 0,
+    shadowOffset: { width: 0, height: 0 },
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
   input: {
-    ...typography.body,
+    flex: 1,
+    minWidth: 0,
+    fontSize: 15,
     color: colors.text,
-    backgroundColor: colors.bg,
+    paddingVertical: 0,
+  },
+  content: {
+    paddingHorizontal: 20,
+  },
+  chips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    paddingBottom: 14,
+  },
+  chip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: radius.full,
+    backgroundColor: colors.bgMuted,
     borderWidth: 1,
-    borderColor: colors.borderStrong,
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    minHeight: 52,
-    paddingVertical: 14,
+    borderColor: colors.border,
+  },
+  chipText: {
+    fontSize: 13,
+    color: colors.textSecondary,
   },
   section: {
     ...typography.caption,
     color: colors.textMuted,
     textTransform: 'uppercase',
-    paddingHorizontal: 20,
-    marginTop: 12,
-    marginBottom: 8,
+    letterSpacing: 0.6,
+    marginBottom: 10,
   },
-  list: {
-    paddingHorizontal: 20,
-    paddingBottom: 40,
+  results: {
+    gap: 8,
   },
   empty: {
     ...typography.bodySm,
@@ -260,73 +272,48 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   row: {
-    paddingVertical: 14,
-    paddingHorizontal: 14,
-    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    backgroundColor: colors.bgElevated,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.bgElevated,
-    marginBottom: 8,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 13,
   },
-  rowActive: {
-    borderColor: colors.accentBorder,
-    backgroundColor: colors.accentSoft,
-  },
-  rowTitle: {
-    ...typography.body,
-    color: colors.text,
-    flex: 1,
-    marginEnd: 12,
-  },
-  rowMeta: {
-    ...typography.caption,
-    color: colors.textSecondary,
-  },
-  footer: {
-    marginTop: 12,
-  },
-  switchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 18,
-    marginBottom: 12,
-  },
-  switchLabel: {
-    ...typography.body,
-    color: colors.text,
-  },
-  submit: {
-    marginTop: 8,
-    backgroundColor: colors.accent,
-    borderRadius: 14,
-    minHeight: 52,
-    paddingVertical: 16,
+  initial: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: colors.bgMuted,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  submitDisabled: {
-    backgroundColor: colors.bgMuted,
-    opacity: 1,
+  initialText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.accent,
+    fontFamily: typography.brandSm.fontFamily,
   },
-  submitText: {
-    ...typography.button,
-    color: colors.textInverse,
+  rowBody: {
+    flex: 1,
+    minWidth: 0,
   },
-  submitTextDisabled: {
+  rowTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  rowMeta: {
+    fontSize: 12,
     color: colors.textMuted,
+    marginTop: 2,
   },
-  success: {
-    ...typography.bodySm,
-    color: colors.success,
-    marginBottom: 8,
-  },
-  error: {
-    ...typography.bodySm,
-    color: colors.danger,
-    marginBottom: 8,
+  kcal: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.accent,
+    flexShrink: 0,
   },
 });

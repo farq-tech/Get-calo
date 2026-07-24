@@ -16,7 +16,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 
-import { BrandMark } from '@/components/BrandMark';
 import { ScanProgressOverlay } from '@/components/ScanProgressOverlay';
 import { ShutterButton } from '@/components/ShutterButton';
 import { ViewfinderFrame } from '@/components/ViewfinderFrame';
@@ -39,10 +38,12 @@ export default function CameraScreen() {
   const { scanning, scanStep, previewUri, scan, cancelScan } = useInference();
   const [capturedUri, setCapturedUri] = useState<string | null>(null);
   const [mode, setMode] = useState<ScanMode>('food');
+  const [flashOn, setFlashOn] = useState(false);
 
   const analyzingUri = previewUri ?? capturedUri;
   const showAnalyze = scanning && analyzingUri != null && scanStep != null;
-  const frameH = Math.min(width - 72, 300);
+  const frameW = Math.max(0, width - 72);
+  const frameH = 300;
 
   const runScan = useCallback(
     async (uri: string) => {
@@ -108,10 +109,13 @@ export default function CameraScreen() {
   if (Platform.OS === 'web') {
     return (
       <View style={styles.fill}>
-        <StatusBar style={showAnalyze ? 'light' : 'light'} />
-        <LinearGradient colors={[...colors.gradientDeep]} style={styles.fill}>
-          <View style={[styles.permission, { paddingTop: insets.top + 48 }]}>
-            <BrandMark size="hero" subtitle={t('tagline')} showCredit />
+        <StatusBar style="light" />
+        <LinearGradient colors={['#101715', colors.bg, colors.bg]} style={styles.fill}>
+          <View style={styles.permissionGlow} pointerEvents="none" />
+          <View style={[styles.permission, { paddingTop: insets.top + 32 }]}>
+            <View style={styles.permIcon}>
+              <Ionicons name="camera-outline" size={32} color={colors.accent} />
+            </View>
             <Text style={styles.permTitle}>{t('camera.webTitle')}</Text>
             <Text style={styles.permBody}>{t('camera.webBody')}</Text>
 
@@ -129,14 +133,6 @@ export default function CameraScreen() {
                 </Pressable>
                 <Pressable style={styles.secondaryBtn} onPress={onWebDemo}>
                   <Text style={styles.secondaryBtnText}>{t('camera.demoScan')}</Text>
-                </Pressable>
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={() => router.push('/settings')}
-                  style={styles.settingsLink}
-                >
-                  <Ionicons name="settings-outline" size={18} color={colors.textSecondary} />
-                  <Text style={styles.settingsLinkText}>{t('camera.settings')}</Text>
                 </Pressable>
               </View>
             ) : null}
@@ -165,8 +161,10 @@ export default function CameraScreen() {
 
   if (!permission.granted) {
     return (
-      <LinearGradient colors={[...colors.gradientDeep]} style={styles.fill}>
-        <View style={[styles.permission, { paddingTop: insets.top + 48 }]}>
+      <LinearGradient colors={['#101715', colors.bg, colors.bg]} style={styles.fill}>
+        <StatusBar style="light" />
+        <View style={styles.permissionGlow} pointerEvents="none" />
+        <View style={styles.permission}>
           <View style={styles.permIcon}>
             <Ionicons name="camera-outline" size={32} color={colors.accent} />
           </View>
@@ -211,8 +209,8 @@ export default function CameraScreen() {
         pointerEvents="none"
       />
 
-      <View style={[styles.topChrome, { paddingTop: insets.top + 12 }]}>
-        <Pressable style={styles.roundBtn} onPress={() => router.push('/correct')}>
+      <View style={[styles.topChrome, { top: insets.top + 17 }]}>
+        <Pressable style={styles.roundBtn} onPress={() => router.push('/history')}>
           <BlurView intensity={40} tint="dark" style={styles.roundBtnBlur}>
             <Ionicons name="time-outline" size={20} color={colors.text} />
           </BlurView>
@@ -227,11 +225,11 @@ export default function CameraScreen() {
         </Pressable>
       </View>
 
-      <View style={styles.viewfinderWrap} pointerEvents="none">
-        <ViewfinderFrame size={frameH} />
+      <View style={[styles.viewfinderWrap, { top: 160, width: frameW, height: frameH }]} pointerEvents="none">
+        <ViewfinderFrame width={frameW} height={frameH} />
       </View>
 
-      <View style={[styles.modes, { bottom: Math.max(insets.bottom, 16) + 168 }]}>
+      <View style={[styles.modes, { bottom: Math.max(206, insets.bottom + 172) }]}>
         <View style={styles.modeRow}>
           {modeChip('food', t('camera.modeFood'))}
           {modeChip('drink', t('camera.modeDrink'))}
@@ -239,18 +237,25 @@ export default function CameraScreen() {
         </View>
       </View>
 
-      <View style={[styles.bottomChrome, { paddingBottom: Math.max(insets.bottom, 16) + 28 }]}>
+      <View style={[styles.bottomChrome, { bottom: Math.max(64, insets.bottom + 30) }]}>
         <Pressable style={styles.sideBtn} onPress={() => router.push('/correct')}>
           <Ionicons name="search" size={20} color={colors.textSecondary} />
         </Pressable>
         <View style={styles.shutterWrap}>
           <ShutterButton onPress={() => void onCapture()} busy={scanning} />
         </View>
-        <View style={styles.sideBtn}>
-          <Ionicons name="flash-outline" size={20} color={colors.textSecondary} />
-        </View>
+        <Pressable
+          style={[styles.sideBtn, flashOn && styles.sideBtnActive]}
+          onPress={() => setFlashOn((value) => !value)}
+        >
+          <Ionicons
+            name="flash-outline"
+            size={20}
+            color={flashOn ? colors.accent : colors.textSecondary}
+          />
+        </Pressable>
       </View>
-      <Text style={[styles.tapHint, { bottom: Math.max(insets.bottom, 12) + 8 }]}>
+      <Text style={[styles.tapHint, { bottom: Math.max(36, insets.bottom + 2) }]}>
         {t('camera.tapToScan')}
       </Text>
 
@@ -277,7 +282,6 @@ const styles = StyleSheet.create({
   },
   topChrome: {
     position: 'absolute',
-    top: 0,
     left: 0,
     right: 0,
     zIndex: 2,
@@ -316,11 +320,9 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   viewfinderWrap: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    justifyContent: 'center',
+    position: 'absolute',
+    left: 36,
     zIndex: 1,
-    marginTop: -40,
   },
   modes: {
     position: 'absolute',
@@ -359,7 +361,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: 0,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -367,7 +368,8 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   shutterWrap: {
-    minHeight: 96,
+    width: 80,
+    height: 80,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -381,6 +383,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  sideBtnActive: {
+    backgroundColor: 'rgba(45,212,168,0.2)',
+  },
   tapHint: {
     position: 'absolute',
     left: 0,
@@ -392,9 +397,19 @@ const styles = StyleSheet.create({
   },
   permission: {
     flex: 1,
-    paddingHorizontal: 28,
+    paddingHorizontal: 32,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  permissionGlow: {
+    position: 'absolute',
+    top: '26%',
+    left: '50%',
+    width: 500,
+    height: 500,
+    marginLeft: -250,
+    borderRadius: 250,
+    backgroundColor: 'rgba(16,185,129,0.12)',
   },
   permIcon: {
     width: 72,
@@ -473,29 +488,20 @@ const styles = StyleSheet.create({
   },
   secondaryBtn: {
     marginTop: 14,
-    minHeight: 52,
+    minHeight: 54,
     width: '100%',
     maxWidth: 300,
     paddingHorizontal: 28,
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: colors.accentBorder,
-    backgroundColor: colors.accentSoft,
+    borderColor: colors.borderStrong,
+    backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
   },
   secondaryBtnText: {
     ...typography.button,
-    color: colors.accent,
-  },
-  settingsLink: {
-    marginTop: 28,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  settingsLinkText: {
-    ...typography.bodySm,
-    color: colors.textSecondary,
+    fontWeight: '600',
+    color: colors.text,
   },
 });

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -14,6 +14,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 
 import { CalorieCard } from '@/components/CalorieCard';
+import { useMealStore } from '@/hooks/useMealStore';
 import { useScanStore, useSettingsStore } from '@/hooks/useSettingsStore';
 import { colors } from '@/theme/colors';
 import { motion, radius, spacing } from '@/theme/tokens';
@@ -26,8 +27,11 @@ export default function ResultScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const result = useScanStore((s) => s.lastResult);
+  const addMeal = useMealStore((s) => s.addMeal);
   const locale = useSettingsStore((s) => s.locale);
   const [servingIdx, setServingIdx] = useState(0);
+  const [showToast, setShowToast] = useState(false);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const foodName = useMemo(() => {
     if (!result?.nutrition) return t('result.unknownFood');
@@ -35,7 +39,7 @@ export default function ResultScreen() {
     return result.nutrition.nameEn;
   }, [locale, result, t]);
 
-  const factor = SERVING_FACTORS[servingIdx];
+  const factor = SERVING_FACTORS[servingIdx] ?? 1;
   const scaledNutrition = useMemo(() => {
     if (!result?.nutrition) return null;
     const n = result.nutrition;
@@ -59,6 +63,36 @@ export default function ResultScreen() {
     return SERVING_FACTORS.map((f) => `${Math.round(base * f)}${t('result.grams')}`);
   }, [result, t]);
 
+  const confidenceLabel = useMemo(() => {
+    const confidence = result?.confidence ?? 0;
+    if (confidence >= 0.85) return t('result.confidenceHigh');
+    if (confidence >= 0.6) return t('result.confidenceMedium');
+    return t('result.confidenceLow');
+  }, [result, t]);
+
+  useEffect(() => {
+    return () => {
+      if (toastTimer.current) clearTimeout(toastTimer.current);
+    };
+  }, []);
+
+  const onSaveMeal = () => {
+    if (!result || !scaledNutrition) return;
+    addMeal({
+      name: foodName,
+      caloriesKcal: scaledNutrition.caloriesKcal,
+      proteinG: scaledNutrition.proteinG,
+      carbsG: scaledNutrition.carbsG,
+      fatG: scaledNutrition.fatG,
+      servingLabel,
+      confidence: result.confidence,
+      imageUri: result.imageUri,
+    });
+    setShowToast(true);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setShowToast(false), 2600);
+  };
+
   if (!result) {
     return (
       <LinearGradient colors={[...colors.gradientDeep]} style={styles.fill}>
@@ -76,7 +110,7 @@ export default function ResultScreen() {
 
   return (
     <View style={styles.fill}>
-      <View style={[styles.topBar, { paddingTop: insets.top + 12 }]}>
+      <View style={[styles.topBar, { paddingTop: insets.top + 17 }]}>
         <Pressable style={styles.iconBtn} onPress={() => router.replace('/camera')}>
           <Ionicons name="chevron-back" size={18} color={colors.text} />
         </Pressable>
@@ -103,7 +137,7 @@ export default function ResultScreen() {
             carbsLabel={t('result.carbs')}
             fatLabel={t('result.fat')}
             servingTitle={t('result.serving')}
-            confidenceLabel={t('result.confidence')}
+            confidenceLabel={confidenceLabel}
             perServingLabel={t('result.perServing')}
             gramsLabel={t('result.grams')}
           />
@@ -138,7 +172,9 @@ export default function ResultScreen() {
         </Pressable>
       </ScrollView>
 
-      <View
+      <LinearGradient
+        colors={['rgba(10,14,13,0)', colors.bg, colors.bg]}
+        locations={[0, 0.4, 1]}
         style={[
           styles.footer,
           { paddingBottom: Math.max(insets.bottom, 16) + 12 },
@@ -147,12 +183,23 @@ export default function ResultScreen() {
         <Pressable style={styles.ghostBtn} onPress={() => router.replace('/camera')}>
           <Text style={styles.ghostBtnText}>{t('result.scanAgain')}</Text>
         </Pressable>
-        <Pressable style={styles.saveHit} onPress={() => router.replace('/camera')}>
+        <Pressable style={styles.saveHit} onPress={onSaveMeal}>
           <LinearGradient colors={[...colors.gradientPrimary]} style={styles.saveBtn}>
             <Text style={styles.saveBtnText}>{t('result.save')}</Text>
           </LinearGradient>
         </Pressable>
-      </View>
+      </LinearGradient>
+      {showToast ? (
+        <View style={[styles.toast, { bottom: Math.max(110, insets.bottom + 76) }]}>
+          <View style={styles.toastIcon}>
+            <Ionicons name="checkmark" size={12} color={colors.success} />
+          </View>
+          <Text style={styles.toastText}>{t('history.savedToast')}</Text>
+          <Pressable onPress={() => router.push('/history')} hitSlop={10}>
+            <Text style={styles.toastAction}>{t('history.view')}</Text>
+          </Pressable>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -315,5 +362,42 @@ const styles = StyleSheet.create({
   primaryBtnText: {
     ...typography.button,
     color: colors.textInverse,
+  },
+  toast: {
+    position: 'absolute',
+    left: 20,
+    right: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderRadius: 14,
+    backgroundColor: colors.bgMuted,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    shadowColor: colors.black,
+    shadowOpacity: 0.4,
+    shadowRadius: 32,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 8,
+  },
+  toastIcon: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: 'rgba(52,211,153,0.16)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  toastText: {
+    flex: 1,
+    fontSize: 14,
+    color: colors.text,
+  },
+  toastAction: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.accent,
   },
 });

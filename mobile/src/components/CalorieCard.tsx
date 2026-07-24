@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { ConfidenceBadge } from '@/components/ConfidenceBadge';
 import { MacroBar } from '@/components/MacroBar';
 import { colors } from '@/theme/colors';
 import { motion } from '@/theme/tokens';
@@ -34,13 +33,18 @@ export function CalorieCard({
   proteinLabel,
   carbsLabel,
   fatLabel,
-  servingTitle,
   confidenceLabel,
-  perServingLabel,
   gramsLabel,
 }: CalorieCardProps) {
   const calories = nutrition?.caloriesKcal ?? 0;
   const [shown, setShown] = useState(0);
+  const pct = Math.round(Math.max(0, Math.min(1, confidence)) * 100);
+  const confColor =
+    confidence >= 0.85
+      ? colors.confidenceHigh
+      : confidence >= 0.6
+        ? colors.confidenceMid
+        : colors.confidenceLow;
 
   useEffect(() => {
     let frame = 0;
@@ -58,8 +62,18 @@ export function CalorieCard({
 
   return (
     <View style={styles.card}>
-      <Text style={styles.foodName}>{foodName}</Text>
-      <Text style={styles.servingMeta}>{servingLabel}</Text>
+      <View style={styles.header}>
+        <View style={styles.foodCopy}>
+          <Text style={styles.foodName}>{foodName}</Text>
+          <Text style={styles.servingMeta}>{servingLabel}</Text>
+        </View>
+        <View style={[styles.confidencePill, { backgroundColor: `${confColor}1F` }]}>
+          <View style={[styles.confidenceDot, { backgroundColor: confColor }]} />
+          <Text style={[styles.confidenceText, { color: confColor }]}>
+            {confidenceLabel} · {pct}%
+          </Text>
+        </View>
+      </View>
 
       <View style={styles.calorieBlock}>
         <Text style={styles.calorieLabel}>{caloriesLabel}</Text>
@@ -94,10 +108,6 @@ export function CalorieCard({
           delay={240}
         />
       </View>
-
-      <View style={styles.confidence}>
-        <ConfidenceBadge confidence={confidence} label={confidenceLabel} />
-      </View>
     </View>
   );
 }
@@ -106,23 +116,50 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.bgCard,
     borderRadius: 28,
-    paddingHorizontal: 24,
-    paddingVertical: 28,
+    paddingHorizontal: 22,
+    paddingVertical: 26,
     borderWidth: 1,
     borderColor: colors.border,
   },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  foodCopy: {
+    flex: 1,
+  },
   foodName: {
     ...typography.foodTitle,
+    fontSize: 23,
     color: colors.text,
     marginBottom: 4,
   },
   servingMeta: {
     ...typography.bodySm,
     color: colors.textMuted,
-    marginBottom: 20,
+  },
+  confidencePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  confidenceDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  confidenceText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
   calorieBlock: {
-    marginBottom: 22,
+    marginTop: 18,
+    marginBottom: 20,
   },
   calorieLabel: {
     ...typography.caption,
@@ -150,12 +187,6 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   macros: {
-    marginBottom: 8,
-  },
-  confidence: {
-    marginTop: 12,
-    paddingTop: 16,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.border,
+    gap: 13,
   },
 });
