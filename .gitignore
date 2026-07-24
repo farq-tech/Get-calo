@@ -72,3 +72,9 @@ tmp/
 .vercel
 .env*
 mobile/android/
+
+# Large nutrition reference dumps (regenerate index via script)
+ml/data/nutrition_refs/FoodData_Central_sr_legacy_food_json_2018-04.json
+ml/data/datasets/grocery_tamimi/classes_raw.json
+ml/data/datasets/grocery_tamimi/calorie_match_cache.json
+ml/data/datasets/grocery_yolo/
