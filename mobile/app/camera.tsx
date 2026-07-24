@@ -1,4 +1,4 @@
-import React, { createElement, useCallback, useRef, useState } from 'react';
+import React, { createElement, useCallback, useEffect, useRef, useState } from 'react';
 import {
   Platform,
   Pressable,
@@ -50,15 +50,43 @@ function WebLiveVideo({
       height: '100%',
       objectFit: 'cover',
       backgroundColor: '#070A09',
+      zIndex: 0,
+      pointerEvents: 'none',
     },
   });
+}
+
+/** Extra bottom space so Safari toolbar never covers the shutter. */
+function useWebBottomPad(insetsBottom: number) {
+  const [pad, setPad] = useState(Math.max(insetsBottom, 24) + 88);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof window === 'undefined') return;
+    const update = () => {
+      const vv = window.visualViewport;
+      const gap = vv ? Math.max(0, window.innerHeight - vv.height - vv.offsetTop) : 0;
+      setPad(Math.max(insetsBottom, 24) + Math.max(gap, 72) + 16);
+    };
+    update();
+    window.visualViewport?.addEventListener('resize', update);
+    window.visualViewport?.addEventListener('scroll', update);
+    window.addEventListener('resize', update);
+    return () => {
+      window.visualViewport?.removeEventListener('resize', update);
+      window.visualViewport?.removeEventListener('scroll', update);
+      window.removeEventListener('resize', update);
+    };
+  }, [insetsBottom]);
+
+  return pad;
 }
 
 export default function CameraScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
+  const webBottomPad = useWebBottomPad(insets.bottom);
   const cameraRef = useRef<CameraView>(null);
   const [permission, requestPermission] = useCameraPermissions();
   const webCamera = useWebCamera();
@@ -70,8 +98,8 @@ export default function CameraScreen() {
 
   const analyzingUri = previewUri ?? capturedUri;
   const showAnalyze = scanning && analyzingUri != null && scanStep != null;
-  const frameW = Math.max(0, width - 72);
-  const frameH = 300;
+  const frameW = Math.max(0, Math.min(width - 48, 360));
+  const frameH = Math.min(280, Math.max(180, height * 0.32));
   const webReady = webCamera.status === 'ready';
   const webBlocked =
     webCamera.status === 'denied' || webCamera.status === 'unavailable';
@@ -253,8 +281,8 @@ export default function CameraScreen() {
             )}
           </View>
         ) : (
-          <View style={styles.phoneShell} pointerEvents="box-none">
-            <View style={[styles.topChrome, { top: insets.top + 17 }]}>
+          <View style={styles.webUi} pointerEvents="box-none">
+            <View style={[styles.topChromeFlex, { paddingTop: Math.max(insets.top, 12) + 8 }]}>
               <Pressable style={styles.roundBtn} onPress={() => router.push('/history')}>
                 <View style={styles.roundBtnBlur}>
                   <Ionicons name="time-outline" size={20} color={colors.text} />
@@ -270,42 +298,34 @@ export default function CameraScreen() {
               </Pressable>
             </View>
 
-            <View
-              style={[
-                styles.viewfinderWrap,
-                { top: Math.max(140, insets.top + 100), width: frameW, height: frameH },
-              ]}
-              pointerEvents="none"
-            >
+            <View style={styles.webMiddle} pointerEvents="none">
               <ViewfinderFrame width={frameW} height={frameH} />
             </View>
 
-            <View style={[styles.modes, { bottom: Math.max(206, insets.bottom + 172) }]}>
+            <View style={[styles.webDock, { paddingBottom: webBottomPad }]}>
               <View style={styles.modeRow}>
                 {modeChip('food', t('camera.modeFood'))}
                 {modeChip('drink', t('camera.modeDrink'))}
                 {modeChip('snack', t('camera.modeSnack'))}
               </View>
-            </View>
 
-            <View style={[styles.bottomChrome, { bottom: Math.max(64, insets.bottom + 30) }]}>
-              <Pressable style={styles.sideBtn} onPress={() => router.push('/correct')}>
-                <Ionicons name="search" size={20} color={colors.textSecondary} />
-              </Pressable>
-              <View style={styles.shutterWrap}>
-                <ShutterButton onPress={() => void onWebCapture()} busy={scanning} />
+              <View style={styles.bottomChromeFlex}>
+                <Pressable style={styles.sideBtn} onPress={() => router.push('/correct')}>
+                  <Ionicons name="search" size={20} color={colors.textSecondary} />
+                </Pressable>
+                <View style={styles.shutterWrap}>
+                  <ShutterButton onPress={() => void onWebCapture()} busy={scanning} />
+                </View>
+                <Pressable
+                  style={styles.sideBtn}
+                  onPress={onWebDemo}
+                  accessibilityLabel={t('camera.demoScan')}
+                >
+                  <Ionicons name="sparkles-outline" size={20} color={colors.textSecondary} />
+                </Pressable>
               </View>
-              <Pressable
-                style={styles.sideBtn}
-                onPress={onWebDemo}
-                accessibilityLabel={t('camera.demoScan')}
-              >
-                <Ionicons name="sparkles-outline" size={20} color={colors.textSecondary} />
-              </Pressable>
+              <Text style={styles.tapHintFlex}>{t('camera.tapToScan')}</Text>
             </View>
-            <Text style={[styles.tapHint, { bottom: Math.max(36, insets.bottom + 2) }]}>
-              {t('camera.tapToScan')}
-            </Text>
           </View>
         )}
 
@@ -462,6 +482,47 @@ const styles = StyleSheet.create({
   fill: {
     flex: 1,
     backgroundColor: colors.bg,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  webUi: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 20,
+    elevation: 20,
+    justifyContent: 'space-between',
+  },
+  topChromeFlex: {
+    zIndex: 22,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  webMiddle: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 21,
+  },
+  webDock: {
+    zIndex: 22,
+    alignItems: 'center',
+    gap: 14,
+    paddingTop: 8,
+    backgroundColor: 'rgba(7,10,9,0.35)',
+  },
+  bottomChromeFlex: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 44,
+    minHeight: 88,
+  },
+  tapHintFlex: {
+    textAlign: 'center',
+    fontSize: 12,
+    color: colors.textMuted,
+    marginBottom: 4,
   },
   phoneShell: {
     ...StyleSheet.absoluteFillObject,
