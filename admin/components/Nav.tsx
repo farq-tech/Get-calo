@@ -18,7 +18,7 @@ export function Nav() {
     <header className="site-header">
       <div className="brand-lockup">
         <Link href="/" className="brand-mark">
-          Calora
+          SnapCal
         </Link>
         <span className="brand-sub">Ops</span>
       </div>

@@ -148,6 +148,7 @@ export default function SettingsScreen() {
 
         <Text style={styles.section}>{t('settings.about')}</Text>
         <Text style={styles.about}>{t('settings.aboutBody')}</Text>
+        <Text style={styles.credit}>{t('credit')}</Text>
         <Text style={styles.privacy}>{t('settings.privacy')}</Text>
       </ScrollView>
     </LinearGradient>
@@ -291,6 +292,11 @@ const styles = StyleSheet.create({
   about: {
     ...typography.body,
     color: colors.textSecondary,
+  },
+  credit: {
+    ...typography.caption,
+    color: colors.accent,
+    marginTop: 14,
   },
   privacy: {
     ...typography.bodySm,

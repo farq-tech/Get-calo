@@ -68,7 +68,7 @@ export default async function DashboardPage() {
     <>
       <SetupBanner requiredAdmin />
       <section className="page-hero">
-        <p className="page-eyebrow">Calora · Ops</p>
+        <p className="page-eyebrow">SnapCal · Ops</p>
         <h1 className="page-title">Production control</h1>
         <p className="page-lead">
           Monitor the live YOLO build, pending correction queue, and dataset registry for

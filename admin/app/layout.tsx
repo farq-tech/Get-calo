@@ -18,8 +18,8 @@ const ibmPlex = IBM_Plex_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Calora Ops",
-  description: "AI Calorie Scanner admin — models, feedback, datasets, training",
+  title: "SnapCal Ops",
+  description: "SnapCal admin — models, feedback, datasets, training",
 };
 
 export default function RootLayout({
