@@ -1,9 +1,7 @@
-import type { ReactNode } from "react";
-
 export type Column<T> = {
   key: string;
   header: string;
-  render: (row: T) => ReactNode;
+  render: (row: T) => unknown;
   align?: "left" | "right";
 };
 
@@ -47,7 +45,8 @@ export function DataTable<T>({
                   key={col.key}
                   className={col.align === "right" ? "align-right" : undefined}
                 >
-                  {col.render(row)}
+                  {/* Avoid ReactNode clash between Expo (root) and Next (@types/react) */}
+                  <>{col.render(row) as never}</>
                 </td>
               ))}
             </tr>
