@@ -21,17 +21,17 @@ function isDemoUri(uri: string) {
 }
 
 const DEMO_NUTRITION: NutritionItem = {
-  itemIdentity: 'demo.chicken_kabsa',
+  itemIdentity: 'demo.margherita_pizza',
   classId: -100,
-  nameEn: 'Chicken Kabsa',
-  nameAr: 'كبسة دجاج',
-  caloriesKcal: 487,
-  proteinG: 32,
-  carbsG: 54,
-  fatG: 18,
-  servingSizeG: 240,
-  servingLabelEn: '1 plate',
-  servingLabelAr: 'صحن واحد',
+  nameEn: 'Margherita Pizza',
+  nameAr: 'بيتزا مارغريتا',
+  caloriesKcal: 268,
+  proteinG: 11,
+  carbsG: 33,
+  fatG: 10,
+  servingSizeG: 120,
+  servingLabelEn: '1 slice',
+  servingLabelAr: '\u0634\u0631\u064A\u062D\u0629 \u0648\u0627\u062D\u062F\u0629',
   category: 'meal',
 };
 
