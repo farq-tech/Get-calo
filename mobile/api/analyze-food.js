@@ -1,10 +1,7 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
-
-type AnalyzeBody = {
-  imageBase64?: string;
-  mimeType?: string;
-  locale?: 'en' | 'ar';
-};
+/**
+ * Calora AI food vision endpoint (Vercel Serverless, CommonJS).
+ * POST { imageBase64, mimeType?, locale? } → Gemini food + nutrition JSON
+ */
 
 const SYSTEM_PROMPT = `You are Calora, an expert nutrition vision assistant for Gulf / Saudi everyday food, drinks, snacks, and grocery products.
 
@@ -14,8 +11,8 @@ Return ONLY valid JSON (no markdown) with this shape:
 {
   "name_en": string,
   "name_ar": string,
-  "confidence": number,          // 0-1
-  "calories_kcal": number,       // for one typical serving
+  "confidence": number,
+  "calories_kcal": number,
   "protein_g": number,
   "carbs_g": number,
   "fat_g": number,
@@ -32,24 +29,55 @@ Rules:
 - Use Arabic (Saudi) for name_ar and serving_label_ar.
 - confidence >= 0.75 when clearly identifiable.`;
 
-function json(res: VercelResponse, status: number, body: unknown) {
-  res.status(status).setHeader('Content-Type', 'application/json');
+function send(res, status, body) {
+  res.statusCode = status;
+  res.setHeader('Content-Type', 'application/json');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.send(JSON.stringify(body));
+  res.end(JSON.stringify(body));
 }
 
-function stripCodeFence(text: string): string {
-  const trimmed = text.trim();
+function stripCodeFence(text) {
+  const trimmed = String(text || '').trim();
   if (!trimmed.startsWith('```')) return trimmed;
   return trimmed.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
 }
 
-async function callGemini(imageBase64: string, mimeType: string, locale: string) {
+function readBody(req) {
+  return new Promise((resolve, reject) => {
+    if (req.body && typeof req.body === 'object') {
+      resolve(req.body);
+      return;
+    }
+    if (typeof req.body === 'string') {
+      try {
+        resolve(JSON.parse(req.body || '{}'));
+      } catch (err) {
+        reject(err);
+      }
+      return;
+    }
+    const chunks = [];
+    req.on('data', (c) => chunks.push(c));
+    req.on('end', () => {
+      try {
+        const raw = Buffer.concat(chunks).toString('utf8');
+        resolve(raw ? JSON.parse(raw) : {});
+      } catch (err) {
+        reject(err);
+      }
+    });
+    req.on('error', reject);
+  });
+}
+
+async function callGemini(imageBase64, mimeType, locale) {
   const key = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   if (!key) {
-    throw Object.assign(new Error('GEMINI_API_KEY is not configured'), { status: 503 });
+    const err = new Error('GEMINI_API_KEY is not configured');
+    err.status = 503;
+    throw err;
   }
 
   const model = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
@@ -64,7 +92,7 @@ async function callGemini(imageBase64: string, mimeType: string, locale: string)
           {
             inlineData: {
               mimeType: mimeType || 'image/jpeg',
-              data: imageBase64.replace(/^data:[^;]+;base64,/, ''),
+              data: String(imageBase64).replace(/^data:[^;]+;base64,/, ''),
             },
           },
         ],
@@ -82,24 +110,27 @@ async function callGemini(imageBase64: string, mimeType: string, locale: string)
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
-
   const raw = await resp.text();
   if (!resp.ok) {
     let message = `Gemini error ${resp.status}`;
     try {
-      const err = JSON.parse(raw);
-      message = err?.error?.message || message;
-    } catch {
+      message = JSON.parse(raw)?.error?.message || message;
+    } catch (_) {
       /* ignore */
     }
-    throw Object.assign(new Error(message), { status: resp.status === 429 ? 429 : 502, detail: raw.slice(0, 500) });
+    const err = new Error(message);
+    err.status = resp.status === 429 ? 429 : 502;
+    throw err;
   }
 
   const data = JSON.parse(raw);
-  const text =
-    data?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text || '').join('') || '';
+  const text = (data?.candidates?.[0]?.content?.parts || [])
+    .map((p) => p.text || '')
+    .join('');
   if (!text) {
-    throw Object.assign(new Error('Empty Gemini response'), { status: 502 });
+    const err = new Error('Empty Gemini response');
+    err.status = 502;
+    throw err;
   }
 
   const parsed = JSON.parse(stripCodeFence(text));
@@ -121,30 +152,35 @@ async function callGemini(imageBase64: string, mimeType: string, locale: string)
   };
 }
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') {
-    return json(res, 204, {});
+    return send(res, 204, {});
   }
   if (req.method !== 'POST') {
-    return json(res, 405, { error: 'Method not allowed' });
+    return send(res, 405, { error: 'Method not allowed' });
   }
 
   try {
-    const body = (typeof req.body === 'string' ? JSON.parse(req.body) : req.body || {}) as AnalyzeBody;
-    const imageBase64 = body.imageBase64?.trim();
+    const body = await readBody(req);
+    const imageBase64 = String(body.imageBase64 || '').trim();
     if (!imageBase64 || imageBase64.length < 64) {
-      return json(res, 400, { error: 'imageBase64 is required' });
+      return send(res, 400, { error: 'imageBase64 is required' });
     }
-    // ~4MB base64 limit for serverless friendliness
     if (imageBase64.length > 5_500_000) {
-      return json(res, 413, { error: 'Image too large' });
+      return send(res, 413, { error: 'Image too large' });
     }
 
-    const result = await callGemini(imageBase64, body.mimeType || 'image/jpeg', body.locale || 'en');
-    return json(res, 200, { ok: true, result });
+    const result = await callGemini(
+      imageBase64,
+      body.mimeType || 'image/jpeg',
+      body.locale || 'en',
+    );
+    return send(res, 200, { ok: true, result });
   } catch (err) {
-    const status = typeof err === 'object' && err && 'status' in err ? Number((err as { status: number }).status) : 500;
-    const message = err instanceof Error ? err.message : 'Analyze failed';
-    return json(res, status || 500, { ok: false, error: message });
+    const status = err && err.status ? Number(err.status) : 500;
+    return send(res, status || 500, {
+      ok: false,
+      error: err instanceof Error ? err.message : 'Analyze failed',
+    });
   }
-}
+};
