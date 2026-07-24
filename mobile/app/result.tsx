@@ -72,10 +72,10 @@ export default function ResultScreen() {
   }, [result, t]);
 
   const lowConfidence = Boolean(result?.lowConfidence || (result && result.confidence < 0.6));
-  const noFood = Boolean(
-    result && !result.nutrition && (!result.detections || result.detections.length === 0),
+  const noFood = Boolean(result && !result.nutrition);
+  const multiItem = Boolean(
+    result && !result.nutrition && result.detections && result.detections.length > 1,
   );
-  const multiItem = Boolean(result && result.detections && result.detections.length > 1);
 
   useEffect(() => {
     return () => {

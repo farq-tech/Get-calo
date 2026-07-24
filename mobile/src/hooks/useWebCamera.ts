@@ -9,10 +9,16 @@ type UseWebCameraReturn = {
   start: () => Promise<boolean>;
   stop: () => void;
   capture: () => string | null;
+  bindVideo: (node: HTMLVideoElement | null) => void;
 };
+
+function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 /**
  * Browser camera via getUserMedia — permission, live preview, snapshot capture.
+ * Hardened for iOS Safari (playsInline, re-attach, play-before-capture).
  */
 export function useWebCamera(): UseWebCameraReturn {
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -23,27 +29,41 @@ export function useWebCamera(): UseWebCameraReturn {
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
     const video = videoRef.current;
-    if (video) {
-      video.srcObject = null;
-    }
+    if (video) video.srcObject = null;
   }, []);
 
-  const attachStream = useCallback(async (stream: MediaStream) => {
+  const bindToVideo = useCallback(async (stream: MediaStream) => {
     streamRef.current = stream;
-    const video = videoRef.current;
-    if (!video) return false;
-    video.srcObject = stream;
-    video.muted = true;
-    video.playsInline = true;
-    video.setAttribute('playsinline', 'true');
-    video.setAttribute('webkit-playsinline', 'true');
-    try {
-      await video.play();
-    } catch {
-      // Autoplay can fail until a gesture; stream is still attached.
+    for (let attempt = 0; attempt < 8; attempt++) {
+      const video = videoRef.current;
+      if (video) {
+        if (video.srcObject !== stream) {
+          video.srcObject = stream;
+        }
+        video.muted = true;
+        video.defaultMuted = true;
+        video.playsInline = true;
+        video.setAttribute('playsinline', 'true');
+        video.setAttribute('webkit-playsinline', 'true');
+        video.setAttribute('muted', 'true');
+        try {
+          await video.play();
+        } catch {
+          // Will retry on user gesture (shutter).
+        }
+        if (video.videoWidth > 0 || video.readyState >= 2) {
+          setStatus('ready');
+          return true;
+        }
+      }
+      await wait(80);
     }
-    setStatus('ready');
-    return true;
+    // Stream exists even if dimensions not ready yet — mark ready so UI unlocks.
+    if (streamRef.current) {
+      setStatus('ready');
+      return true;
+    }
+    return false;
   }, []);
 
   const start = useCallback(async () => {
@@ -55,6 +75,12 @@ export function useWebCamera(): UseWebCameraReturn {
     if (!media?.getUserMedia) {
       setStatus('unavailable');
       return false;
+    }
+
+    // Already running
+    if (streamRef.current && streamRef.current.getTracks().some((t) => t.readyState === 'live')) {
+      await bindToVideo(streamRef.current);
+      return true;
     }
 
     setStatus('requesting');
@@ -69,22 +95,15 @@ export function useWebCamera(): UseWebCameraReturn {
           height: { ideal: 720 },
         },
       },
-      {
-        audio: false,
-        video: { facingMode: 'environment' },
-      },
-      {
-        audio: false,
-        video: true,
-      },
+      { audio: false, video: { facingMode: 'environment' } },
+      { audio: false, video: true },
     ];
 
     let lastError: unknown = null;
     for (const constraints of attempts) {
       try {
         const stream = await media.getUserMedia(constraints);
-        await attachStream(stream);
-        return true;
+        return await bindToVideo(stream);
       } catch (err) {
         lastError = err;
       }
@@ -101,20 +120,21 @@ export function useWebCamera(): UseWebCameraReturn {
     }
     console.warn('[calora/web-camera] getUserMedia failed', lastError);
     return false;
-  }, [attachStream, stop]);
+  }, [bindToVideo, stop]);
 
   const capture = useCallback(() => {
     const video = videoRef.current;
-    if (!video || video.videoWidth <= 0 || video.videoHeight <= 0) return null;
-    if (typeof document === 'undefined') return null;
+    if (!video || typeof document === 'undefined') return null;
+    const w = video.videoWidth;
+    const h = video.videoHeight;
+    if (w <= 0 || h <= 0) return null;
 
     const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    canvas.width = w;
+    canvas.height = h;
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
-    // Mirror-correct for front cameras; environment is usually unmirrored.
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    ctx.drawImage(video, 0, 0, w, h);
     try {
       return canvas.toDataURL('image/jpeg', 0.88);
     } catch (err) {
@@ -123,9 +143,39 @@ export function useWebCamera(): UseWebCameraReturn {
     }
   }, []);
 
-  useEffect(() => {
-    return () => stop();
-  }, [stop]);
+  const bindVideo = useCallback(
+    (node: HTMLVideoElement | null) => {
+      videoRef.current = node;
+      if (node && streamRef.current) {
+        void bindToVideo(streamRef.current);
+      }
+    },
+    [bindToVideo],
+  );
 
-  return { status, videoRef, start, stop, capture };
+  useEffect(() => {
+    // Auto-resume if browser already granted camera permission.
+    let cancelled = false;
+    async function probe() {
+      if (Platform.OS !== 'web' || typeof navigator === 'undefined') return;
+      try {
+        const perms = navigator.permissions;
+        if (!perms?.query) return;
+        // Some browsers reject camera permission query.
+        const result = await perms.query({ name: 'camera' as PermissionName });
+        if (!cancelled && result.state === 'granted') {
+          await start();
+        }
+      } catch {
+        // Ignore — user will tap Enable camera.
+      }
+    }
+    void probe();
+    return () => {
+      cancelled = true;
+      stop();
+    };
+  }, [start, stop]);
+
+  return { status, videoRef, start, stop, capture, bindVideo };
 }

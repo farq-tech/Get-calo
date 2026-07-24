@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 
-import { lookupByClassId, searchNutrition } from '@/db/nutrition';
+import { lookupByClassId } from '@/db/nutrition';
 import { analyzeFoodWithAi, AI_MODEL_VERSION, isAiScanEnabled } from '@/inference/aiVision';
 import { isLowConfidence, loadModel, runInference } from '@/inference/yolo';
 import { useScanStore, useSettingsStore } from '@/hooks/useSettingsStore';
@@ -88,8 +88,7 @@ export function useInference(): UseInferenceReturn {
         if (isDemoUri(imageUri)) {
           await advanceSteps('finalize');
           if (cancelledRef.current) return null;
-          const matches = await searchNutrition('kabsa', 5);
-          const nutrition = matches[0] ?? DEMO_NUTRITION;
+          const nutrition = DEMO_NUTRITION;
           const detection: Detection = {
             classId: nutrition.classId ?? -100,
             confidence: 0.94,
@@ -124,6 +123,10 @@ export function useInference(): UseInferenceReturn {
             await advanceSteps('finalize');
             if (cancelledRef.current) return null;
 
+            const isUnknown =
+              /unknown/i.test(ai.nameEn) ||
+              (ai.confidence < 0.35 && ai.nutrition.caloriesKcal <= 0);
+
             const detection: Detection = {
               classId: -1,
               confidence: ai.confidence,
@@ -135,9 +138,9 @@ export function useInference(): UseInferenceReturn {
               imageUri,
               detections: [detection],
               topDetection: detection,
-              nutrition: ai.nutrition,
+              nutrition: isUnknown ? null : ai.nutrition,
               confidence: ai.confidence,
-              lowConfidence: isLowConfidence(ai.confidence, threshold),
+              lowConfidence: isUnknown || isLowConfidence(ai.confidence, threshold),
               modelVersion: `${AI_MODEL_VERSION}:${ai.model}`,
               inferredAt: new Date().toISOString(),
               usedFallback: false,
@@ -145,7 +148,7 @@ export function useInference(): UseInferenceReturn {
             setLastResult(result);
             return result;
           } catch (aiErr) {
-            console.warn('[snapcal] cloud scan failed, falling back on-device', aiErr);
+            console.warn('[calora] cloud scan failed, falling back on-device', aiErr);
           }
         }
 

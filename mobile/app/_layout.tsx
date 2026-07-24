@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { I18nManager, StyleSheet, View } from 'react-native';
+import { I18nManager, Platform, StyleSheet, View } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
@@ -51,12 +51,17 @@ export default function RootLayout() {
         if (!cancelled) setLocale(locale);
 
         await initNutritionDb();
-        await loadModel();
+
+        // Web primary path is Gemini — don't block first paint on 12MB ONNX.
+        if (Platform.OS === 'web') {
+          void loadModel().catch(() => undefined);
+        } else {
+          await loadModel();
+        }
 
         const info = await getLocalModelInfo();
         if (!cancelled) setModelInfo(info);
 
-        // Fire-and-forget OTA check — never block first paint
         void checkForModelUpdates()
           .then((result) => {
             if (!cancelled) setModelInfo(result.current);

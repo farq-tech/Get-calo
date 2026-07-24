@@ -30,13 +30,13 @@ import demoMeal from '../assets/samples/demo-meal.jpg';
 type ScanMode = 'food' | 'drink' | 'snack';
 
 function WebLiveVideo({
-  videoRef,
+  bindVideo,
 }: {
-  videoRef: React.MutableRefObject<HTMLVideoElement | null>;
+  bindVideo: (node: HTMLVideoElement | null) => void;
 }) {
   return createElement('video', {
     ref: (node: HTMLVideoElement | null) => {
-      videoRef.current = node;
+      bindVideo(node);
     },
     autoPlay: true,
     muted: true,
@@ -62,10 +62,11 @@ export default function CameraScreen() {
   const cameraRef = useRef<CameraView>(null);
   const [permission, requestPermission] = useCameraPermissions();
   const webCamera = useWebCamera();
-  const { scanning, scanStep, previewUri, scan, cancelScan } = useInference();
+  const { scanning, scanStep, previewUri, scan, cancelScan, error, resetError } = useInference();
   const [capturedUri, setCapturedUri] = useState<string | null>(null);
   const [mode, setMode] = useState<ScanMode>('food');
   const [flashOn, setFlashOn] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
 
   const analyzingUri = previewUri ?? capturedUri;
   const showAnalyze = scanning && analyzingUri != null && scanStep != null;
@@ -74,18 +75,22 @@ export default function CameraScreen() {
   const webReady = webCamera.status === 'ready';
   const webBlocked =
     webCamera.status === 'denied' || webCamera.status === 'unavailable';
+  const bannerError = localError ?? error;
 
   const runScan = useCallback(
     async (uri: string) => {
+      setLocalError(null);
+      resetError();
       setCapturedUri(uri);
       const result = await scan(uri);
       if (result) {
         router.push('/result');
       } else {
         setCapturedUri(null);
+        setLocalError(t('camera.scanFailed'));
       }
     },
-    [router, scan],
+    [resetError, router, scan, t],
   );
 
   const onBackFromScan = useCallback(() => {
@@ -100,24 +105,41 @@ export default function CameraScreen() {
         quality: 0.85,
         skipProcessing: false,
       });
-      if (!photo?.uri) return;
+      if (!photo?.uri) {
+        setLocalError(t('camera.captureFailed'));
+        return;
+      }
       await runScan(photo.uri);
     } catch (err) {
       console.warn('[calora/camera] capture failed', err);
+      setLocalError(t('camera.captureFailed'));
     }
-  }, [runScan, scanning]);
+  }, [runScan, scanning, t]);
 
   const onWebCapture = useCallback(async () => {
     if (scanning) return;
+    setLocalError(null);
     if (webCamera.status !== 'ready') {
       const ok = await webCamera.start();
-      if (!ok) return;
+      if (!ok) {
+        setLocalError(t('camera.permissionTitle'));
+        return;
+      }
       await new Promise((r) => setTimeout(r, 220));
     }
-    const snap = webCamera.capture() ?? (await waitAndCapture(webCamera.capture, 3));
-    if (!snap) return;
+    // Ensure play() happens on the shutter gesture (iOS Safari).
+    try {
+      await webCamera.videoRef.current?.play();
+    } catch {
+      // ignore
+    }
+    const snap = webCamera.capture() ?? (await waitAndCapture(webCamera.capture, 5));
+    if (!snap) {
+      setLocalError(t('camera.captureFailed'));
+      return;
+    }
     await runScan(snap);
-  }, [runScan, scanning, webCamera]);
+  }, [runScan, scanning, t, webCamera]);
 
   const onWebDemo = useCallback(() => {
     void runScan('web-demo://meal');
@@ -132,7 +154,12 @@ export default function CameraScreen() {
     input.onchange = () => {
       const file = input.files?.[0];
       if (!file) return;
-      void runScan(URL.createObjectURL(file));
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = typeof reader.result === 'string' ? reader.result : '';
+        if (dataUrl) void runScan(dataUrl);
+      };
+      reader.readAsDataURL(file);
     };
     input.click();
   }, [runScan]);
@@ -154,7 +181,7 @@ export default function CameraScreen() {
       <View style={styles.fill}>
         <StatusBar style="light" />
         {/* Single stable video element — stream stays attached across UI states */}
-        <WebLiveVideo videoRef={webCamera.videoRef} />
+        <WebLiveVideo bindVideo={webCamera.bindVideo} />
 
         {!webReady ? (
           <LinearGradient
@@ -169,6 +196,21 @@ export default function CameraScreen() {
             pointerEvents="none"
           />
         )}
+
+        {bannerError ? (
+          <View style={[styles.errorBanner, { top: insets.top + 8 }]}>
+            <Text style={styles.errorBannerText}>{bannerError}</Text>
+            <Pressable
+              onPress={() => {
+                setLocalError(null);
+                resetError();
+              }}
+              hitSlop={10}
+            >
+              <Ionicons name="close" size={16} color={colors.text} />
+            </Pressable>
+          </View>
+        ) : null}
 
         {!webReady ? (
           <View style={styles.permission}>
@@ -254,17 +296,11 @@ export default function CameraScreen() {
                 <ShutterButton onPress={() => void onWebCapture()} busy={scanning} />
               </View>
               <Pressable
-                style={[styles.sideBtn, flashOn && styles.sideBtnActive]}
-                onPress={() => {
-                  setFlashOn((v) => !v);
-                  onWebDemo();
-                }}
+                style={styles.sideBtn}
+                onPress={onWebDemo}
+                accessibilityLabel={t('camera.demoScan')}
               >
-                <Ionicons
-                  name="flash-outline"
-                  size={20}
-                  color={flashOn ? colors.accent : colors.textSecondary}
-                />
+                <Ionicons name="sparkles-outline" size={20} color={colors.textSecondary} />
               </Pressable>
             </View>
             <Text style={[styles.tapHint, { bottom: Math.max(36, insets.bottom + 2) }]}>
@@ -640,5 +676,26 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.accent,
     textAlign: 'center',
+  },
+  errorBanner: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    zIndex: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 14,
+    backgroundColor: 'rgba(248,113,113,0.16)',
+    borderWidth: 1,
+    borderColor: 'rgba(248,113,113,0.35)',
+  },
+  errorBannerText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.danger,
   },
 });
