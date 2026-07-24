@@ -16,11 +16,24 @@ Cloud is used **only** for optional correction feedback and model OTA manifests 
 - **Expo Go**: works with mock inference (ONNX native module not available)
 - **Production / Dev Client**: custom build with `onnxruntime-react-native` + model binaries
 
+## Expo project
+
+Linked to Expo dashboard project **get-calo**:
+
+- Project ID: `c32f6466-2d14-45e7-a9ad-17ba2ee4179c`
+- Do **not** run `create-expo-app` — this `mobile/` app is already the product.
+
+```bash
+# One-time (needs Expo login / EXPO_TOKEN)
+cd mobile
+npx eas-cli@latest init --id c32f6466-2d14-45e7-a9ad-17ba2ee4179c
+```
+
 ## Quick start
 
 ```bash
 cd mobile
-cp ../.env.example .env   # or set EXPO_PUBLIC_* in your shell
+# .env already uses Calora Supabase (EXPO_PUBLIC_*)
 npm install
 npx expo start
 ```
