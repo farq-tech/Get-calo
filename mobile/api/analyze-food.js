@@ -1,11 +1,13 @@
 /**
- * Calora AI food vision endpoint (Vercel Serverless, CommonJS).
- * POST { imageBase64, mimeType?, locale? } → Gemini food + nutrition JSON
+ * SnapCal food vision endpoint (Vercel Serverless, CommonJS).
+ * POST { imageBase64, mimeType?, locale? } → food + nutrition JSON
  */
 
-const SYSTEM_PROMPT = `You are Calora, an expert nutrition vision assistant for Gulf / Saudi everyday food, drinks, snacks, and grocery products.
+const SYSTEM_PROMPT = `You are SnapCal, an expert nutrition vision assistant for Gulf / Saudi everyday food, drinks, snacks, and grocery products.
 
 Analyze the photo and identify the main edible item(s). Prefer specific product names when clear (e.g. Pepsi can, laban bottle, basmati rice pack). If unsure, give the best generic food name.
+
+Treat cans, bottles, cartons, cups, and packaged grocery products as food/drink items when they contain something edible.
 
 Return ONLY valid JSON (no markdown) with this shape:
 {
@@ -27,7 +29,8 @@ Rules:
 - If the image is not food/drink, still return JSON with low confidence and name_en "Unknown item".
 - Calories/macros must be realistic for the serving_size_g you choose.
 - Use Arabic (Saudi) for name_ar and serving_label_ar.
-- confidence >= 0.75 when clearly identifiable.`;
+- confidence >= 0.75 when clearly identifiable.
+- Keep notes_en short and practical. Do not mention models, vendors, or how the estimate was produced.`;
 
 function send(res, status, body) {
   res.statusCode = status;
@@ -80,7 +83,7 @@ async function callGemini(imageBase64, mimeType, locale) {
     throw err;
   }
 
-  const model = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+  const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`;
 
   const payload = {
@@ -102,6 +105,7 @@ async function callGemini(imageBase64, mimeType, locale) {
       temperature: 0.2,
       maxOutputTokens: 800,
       responseMimeType: 'application/json',
+      thinkingConfig: { thinkingBudget: 0 },
     },
   };
 
