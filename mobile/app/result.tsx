@@ -15,6 +15,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { CalorieCard } from '@/components/CalorieCard';
 import { useScanStore, useSettingsStore } from '@/hooks/useSettingsStore';
 import { colors } from '@/theme/colors';
+import { motion, radius, spacing } from '@/theme/tokens';
 import { typography } from '@/theme/typography';
 
 export default function ResultScreen() {
@@ -44,8 +45,15 @@ export default function ResultScreen() {
       <LinearGradient colors={[...colors.gradientDeep]} style={styles.fill}>
         <View style={[styles.empty, { paddingTop: insets.top + 40 }]}>
           <Text style={styles.emptyText}>{t('common.error')}</Text>
-          <Pressable style={styles.primaryBtn} onPress={() => router.replace('/camera')}>
-            <Text style={styles.primaryBtnText}>{t('result.scanAgain')}</Text>
+          <Pressable style={styles.primaryHit} onPress={() => router.replace('/camera')}>
+            <LinearGradient
+              colors={[...colors.gradientPrimary]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.primaryBtn}
+            >
+              <Text style={styles.primaryBtnText}>{t('result.scanAgain')}</Text>
+            </LinearGradient>
           </Pressable>
         </View>
       </LinearGradient>
@@ -69,7 +77,7 @@ export default function ResultScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        <Animated.View entering={FadeInDown.duration(480).springify()}>
+        <Animated.View entering={FadeInDown.duration(motion.emphasized).springify()}>
           <CalorieCard
             nutrition={result.nutrition}
             foodName={foodName}
@@ -89,7 +97,7 @@ export default function ResultScreen() {
 
         {result.lowConfidence ? (
           <Animated.View
-            entering={FadeInDown.delay(120).duration(420)}
+            entering={FadeInDown.delay(120).duration(motion.standard)}
             style={styles.lowBox}
           >
             <Text style={styles.lowTitle}>{t('result.lowConfidenceTitle')}</Text>
@@ -99,18 +107,22 @@ export default function ResultScreen() {
             </Pressable>
           </Animated.View>
         ) : (
-          <Animated.View entering={FadeInDown.delay(160).duration(420)} style={styles.actions}>
-            <Pressable style={styles.secondaryBtn} onPress={() => router.push('/correct')}>
-              <Text style={styles.secondaryBtnText}>{t('result.correct')}</Text>
+          <Animated.View entering={FadeInDown.delay(160).duration(motion.standard)} style={styles.actions}>
+            <Pressable style={styles.ghostBtn} onPress={() => router.push('/correct')}>
+              <Text style={styles.ghostBtnText}>{t('result.correct')}</Text>
             </Pressable>
           </Animated.View>
         )}
 
-        <Pressable
-          style={[styles.primaryBtn, styles.scanAgain]}
-          onPress={() => router.replace('/camera')}
-        >
-          <Text style={styles.primaryBtnText}>{t('result.scanAgain')}</Text>
+        <Pressable style={styles.primaryHit} onPress={() => router.replace('/camera')}>
+          <LinearGradient
+            colors={[...colors.gradientPrimary]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.primaryBtn, styles.scanAgain]}
+          >
+            <Text style={styles.primaryBtnText}>{t('result.scanAgain')}</Text>
+          </LinearGradient>
         </Pressable>
       </ScrollView>
     </LinearGradient>
@@ -130,35 +142,35 @@ const styles = StyleSheet.create({
     height: 200,
   },
   content: {
-    paddingHorizontal: 20,
+    paddingHorizontal: spacing.lg - 4,
   },
   empty: {
     flex: 1,
     alignItems: 'center',
-    paddingHorizontal: 24,
+    paddingHorizontal: spacing.lg,
   },
   emptyText: {
     ...typography.body,
     color: colors.textSecondary,
-    marginBottom: 24,
+    marginBottom: spacing.lg,
   },
   lowBox: {
-    marginTop: 20,
-    padding: 20,
-    borderRadius: 20,
-    backgroundColor: 'rgba(248,113,113,0.08)',
+    marginTop: spacing.lg - 4,
+    padding: spacing.lg - 4,
+    borderRadius: radius.xl,
+    backgroundColor: 'rgba(251,191,36,0.1)',
     borderWidth: 1,
-    borderColor: 'rgba(248,113,113,0.28)',
+    borderColor: 'rgba(251,191,36,0.28)',
   },
   lowTitle: {
     ...typography.h3,
     color: colors.text,
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   lowBody: {
     ...typography.bodySm,
     color: colors.textSecondary,
-    marginBottom: 16,
+    marginBottom: spacing.md,
   },
   correctBtn: {
     alignSelf: 'flex-start',
@@ -167,7 +179,9 @@ const styles = StyleSheet.create({
     borderColor: colors.accentBorder,
     paddingHorizontal: 18,
     paddingVertical: 12,
-    borderRadius: 14,
+    borderRadius: radius.md,
+    minHeight: 44,
+    justifyContent: 'center',
   },
   correctBtnText: {
     ...typography.button,
@@ -176,26 +190,37 @@ const styles = StyleSheet.create({
   actions: {
     marginTop: 18,
   },
-  secondaryBtn: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+  ghostBtn: {
+    alignSelf: 'stretch',
+    minHeight: 52,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    backgroundColor: 'transparent',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.md,
   },
-  secondaryBtnText: {
+  ghostBtnText: {
     ...typography.button,
-    color: colors.accent,
+    color: colors.text,
+  },
+  primaryHit: {
+    marginTop: spacing.lg,
+    alignSelf: 'stretch',
   },
   primaryBtn: {
-    backgroundColor: colors.accent,
-    paddingVertical: 16,
-    borderRadius: 16,
+    minHeight: 52,
+    borderRadius: 14,
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.md,
   },
   primaryBtnText: {
     ...typography.button,
     color: colors.textInverse,
   },
   scanAgain: {
-    marginTop: 24,
+    marginTop: 0,
   },
 });

@@ -1,6 +1,8 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { colors } from '@/theme/colors';
+
 type Props = {
   size?: number;
   color?: string;
@@ -8,28 +10,40 @@ type Props = {
 };
 
 /**
- * Commercial viewfinder corners for the live camera preview.
+ * Teal corner brackets for the live camera viewfinder (Design System §04).
  */
 export function ViewfinderFrame({
   size = 280,
-  color = 'rgba(255,255,255,0.92)',
+  color = colors.accent,
   thickness = 3,
 }: Props) {
-  const arm = Math.round(size * 0.12);
+  const arm = Math.round(size * 0.1);
   return (
-    <View style={[styles.box, { width: size, height: size }]} pointerEvents="none">
+    <View
+      style={[
+        styles.box,
+        {
+          width: size,
+          height: size,
+          borderRadius: 24,
+          borderWidth: 1.5,
+          borderColor: colors.accentBorder,
+        },
+      ]}
+      pointerEvents="none"
+    >
       <View
         style={[
           styles.corner,
           {
-            top: 0,
-            left: 0,
+            top: -2,
+            left: -2,
             width: arm,
             height: arm,
             borderTopWidth: thickness,
             borderLeftWidth: thickness,
             borderColor: color,
-            borderTopLeftRadius: 8,
+            borderTopLeftRadius: 24,
           },
         ]}
       />
@@ -37,14 +51,14 @@ export function ViewfinderFrame({
         style={[
           styles.corner,
           {
-            top: 0,
-            right: 0,
+            top: -2,
+            right: -2,
             width: arm,
             height: arm,
             borderTopWidth: thickness,
             borderRightWidth: thickness,
             borderColor: color,
-            borderTopRightRadius: 8,
+            borderTopRightRadius: 24,
           },
         ]}
       />
@@ -52,14 +66,14 @@ export function ViewfinderFrame({
         style={[
           styles.corner,
           {
-            bottom: 0,
-            left: 0,
+            bottom: -2,
+            left: -2,
             width: arm,
             height: arm,
             borderBottomWidth: thickness,
             borderLeftWidth: thickness,
             borderColor: color,
-            borderBottomLeftRadius: 8,
+            borderBottomLeftRadius: 24,
           },
         ]}
       />
@@ -67,14 +81,14 @@ export function ViewfinderFrame({
         style={[
           styles.corner,
           {
-            bottom: 0,
-            right: 0,
+            bottom: -2,
+            right: -2,
             width: arm,
             height: arm,
             borderBottomWidth: thickness,
             borderRightWidth: thickness,
             borderColor: color,
-            borderBottomRightRadius: 8,
+            borderBottomRightRadius: 24,
           },
         ]}
       />

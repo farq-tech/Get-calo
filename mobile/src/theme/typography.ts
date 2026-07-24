@@ -31,8 +31,16 @@ export const typography = {
     letterSpacing: -2.4,
     lineHeight: 78,
   },
+  /** Result food title — Plex 600 · 24 */
+  foodTitle: {
+    fontFamily: fontFamilies.bodySemiBold,
+    fontSize: 24,
+    letterSpacing: -0.4,
+    lineHeight: 30,
+  },
+  /** Plex 600 · 28/34 — UI headlines (not Syne) */
   h1: {
-    fontFamily: fontFamilies.displayMedium,
+    fontFamily: fontFamilies.bodySemiBold,
     fontSize: 28,
     letterSpacing: -0.5,
     lineHeight: 34,

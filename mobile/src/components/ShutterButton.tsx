@@ -13,6 +13,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 
 import { colors } from '@/theme/colors';
+import { motion } from '@/theme/tokens';
 import { useSettingsStore } from '@/hooks/useSettingsStore';
 
 interface ShutterButtonProps {
@@ -29,7 +30,7 @@ export function ShutterButton({ onPress, disabled, busy }: ShutterButtonProps) {
   useEffect(() => {
     pulse.value = withRepeat(
       withSequence(
-        withTiming(1.06, { duration: 900, easing: Easing.inOut(Easing.ease) }),
+        withTiming(1.05, { duration: 900, easing: Easing.inOut(Easing.ease) }),
         withTiming(1, { duration: 900, easing: Easing.inOut(Easing.ease) }),
       ),
       -1,
@@ -43,7 +44,7 @@ export function ShutterButton({ onPress, disabled, busy }: ShutterButtonProps) {
       ring.value = withRepeat(withTiming(1, { duration: 700 }), -1, true);
     } else {
       cancelAnimation(ring);
-      ring.value = withTiming(0, { duration: 200 });
+      ring.value = withTiming(0, { duration: motion.micro });
     }
   }, [busy, ring]);
 

@@ -9,6 +9,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { colors } from '@/theme/colors';
+import { motion } from '@/theme/tokens';
 import { typography } from '@/theme/typography';
 
 interface MacroBarProps {
@@ -36,15 +37,16 @@ export function MacroBar({
 
   useEffect(() => {
     progress.value = 0;
+    const ease = Easing.bezier(0.2, 0, 0, 1);
     progress.value = withDelay(
       delay,
-      withTiming(ratio, { duration: 700, easing: Easing.out(Easing.cubic) }),
+      withTiming(ratio, { duration: motion.macroFill, easing: ease }),
     );
     slide.value = withDelay(
       delay,
-      withTiming(0, { duration: 520, easing: Easing.out(Easing.cubic) }),
+      withTiming(0, { duration: motion.standard + 80, easing: ease }),
     );
-    opacity.value = withDelay(delay, withTiming(1, { duration: 400 }));
+    opacity.value = withDelay(delay, withTiming(1, { duration: motion.standard }));
   }, [delay, opacity, progress, ratio, slide]);
 
   const fillStyle = useAnimatedStyle(() => ({

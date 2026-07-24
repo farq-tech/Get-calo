@@ -1,10 +1,11 @@
 /**
- * Calora design tokens — deep charcoal/ink with teal–emerald accent.
- * Dark mode is the product default. No purple, cream, or terracotta.
+ * Calora design tokens — Design System v1.0
+ * Dark camera default · bright analysis · teal reserved for success & health.
+ * No purple, cream, or terracotta.
  */
 
 export const colors = {
-  // Atmospheric backgrounds
+  // Atmospheric backgrounds — dark
   bg: '#0A0E0D',
   bgElevated: '#121816',
   bgCard: '#161E1B',
@@ -15,6 +16,7 @@ export const colors = {
   gradientAtmosphere: ['#0A0E0D', '#0D1613', '#0A1210'] as const,
   gradientTealWash: ['rgba(16,185,129,0.18)', 'rgba(10,14,13,0)'] as const,
   gradientShutter: ['#2DD4A8', '#10B981'] as const,
+  gradientPrimary: ['#2DD4A8', '#10B981'] as const,
 
   // Accent — teal / emerald
   accent: '#2DD4A8',
@@ -23,11 +25,20 @@ export const colors = {
   accentBorder: 'rgba(45,212,168,0.35)',
   accentMuted: '#1A9B78',
 
-  // Text
+  // Text — dark surfaces
   text: '#F2F7F5',
   textSecondary: '#A8B8B2',
   textMuted: '#6B7C75',
   textInverse: '#0A0E0D',
+
+  // Light mode — analysis / scan progress surfaces
+  lightBg: '#FAFCFB',
+  lightSurface: '#FFFFFF',
+  lightSurfaceMuted: '#EDF3F0',
+  lightText: '#0F1A16',
+  lightTextSecondary: '#5C6D66',
+  lightAccent: '#0E9F76',
+  lightBorder: 'rgba(10,14,13,0.08)',
 
   // Semantic macros
   protein: '#5EEAD4',
