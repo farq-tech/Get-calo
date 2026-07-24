@@ -105,6 +105,7 @@ export default function RootLayout() {
           options={{ animation: 'fade_from_bottom', presentation: 'card' }}
         />
         <Stack.Screen name="correct" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="history" />
         <Stack.Screen name="settings" options={{ presentation: 'modal' }} />
       </Stack>
     </GestureHandlerRootView>

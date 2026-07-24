@@ -61,7 +61,9 @@ export function useInference(): UseInferenceReturn {
     const target = SCAN_STEP_ORDER.indexOf(until);
     for (let i = 0; i <= target; i++) {
       if (cancelledRef.current) return;
-      setScanStep(SCAN_STEP_ORDER[i]);
+      const nextStep = SCAN_STEP_ORDER[i];
+      if (!nextStep) return;
+      setScanStep(nextStep);
       await wait(i === 0 ? 180 : 420 + Math.random() * 180);
     }
   }, []);

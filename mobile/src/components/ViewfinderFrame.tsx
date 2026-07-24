@@ -5,8 +5,12 @@ import { colors } from '@/theme/colors';
 
 type Props = {
   size?: number;
+  width?: number;
+  height?: number;
   color?: string;
   thickness?: number;
+  arm?: number;
+  cornerRadius?: number;
 };
 
 /**
@@ -14,20 +18,22 @@ type Props = {
  */
 export function ViewfinderFrame({
   size = 280,
+  width,
+  height,
   color = colors.accent,
-  thickness = 3,
+  thickness = 3.5,
+  arm = 34,
+  cornerRadius = 26,
 }: Props) {
-  const arm = Math.round(size * 0.1);
+  const frameWidth = width ?? size;
+  const frameHeight = height ?? size;
   return (
     <View
       style={[
         styles.box,
         {
-          width: size,
-          height: size,
-          borderRadius: 24,
-          borderWidth: 1.5,
-          borderColor: colors.accentBorder,
+          width: frameWidth,
+          height: frameHeight,
         },
       ]}
       pointerEvents="none"
@@ -43,7 +49,7 @@ export function ViewfinderFrame({
             borderTopWidth: thickness,
             borderLeftWidth: thickness,
             borderColor: color,
-            borderTopLeftRadius: 24,
+            borderTopLeftRadius: cornerRadius,
           },
         ]}
       />
@@ -58,7 +64,7 @@ export function ViewfinderFrame({
             borderTopWidth: thickness,
             borderRightWidth: thickness,
             borderColor: color,
-            borderTopRightRadius: 24,
+            borderTopRightRadius: cornerRadius,
           },
         ]}
       />
@@ -73,7 +79,7 @@ export function ViewfinderFrame({
             borderBottomWidth: thickness,
             borderLeftWidth: thickness,
             borderColor: color,
-            borderBottomLeftRadius: 24,
+            borderBottomLeftRadius: cornerRadius,
           },
         ]}
       />
@@ -88,7 +94,7 @@ export function ViewfinderFrame({
             borderBottomWidth: thickness,
             borderRightWidth: thickness,
             borderColor: color,
-            borderBottomRightRadius: 24,
+            borderBottomRightRadius: cornerRadius,
           },
         ]}
       />

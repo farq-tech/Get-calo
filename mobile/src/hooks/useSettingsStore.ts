@@ -7,20 +7,24 @@ import { detectDeviceLocale } from '@/i18n';
 interface SettingsState {
   locale: LocaleCode;
   hapticsEnabled: boolean;
+  shareFeedbackEnabled: boolean;
   confidenceThreshold: number;
   hydrated: boolean;
   setLocale: (locale: LocaleCode) => void;
   setHapticsEnabled: (enabled: boolean) => void;
+  setShareFeedbackEnabled: (enabled: boolean) => void;
   setHydrated: (value: boolean) => void;
 }
 
 export const useSettingsStore = create<SettingsState>((set) => ({
   locale: detectDeviceLocale(),
   hapticsEnabled: true,
+  shareFeedbackEnabled: false,
   confidenceThreshold: LOW_CONFIDENCE_THRESHOLD,
   hydrated: false,
   setLocale: (locale) => set({ locale }),
   setHapticsEnabled: (hapticsEnabled) => set({ hapticsEnabled }),
+  setShareFeedbackEnabled: (shareFeedbackEnabled) => set({ shareFeedbackEnabled }),
   setHydrated: (hydrated) => set({ hydrated }),
 }));
 
