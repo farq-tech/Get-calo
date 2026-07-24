@@ -19,7 +19,9 @@
   "dependencies": {
     "@expo-google-fonts/ibm-plex-sans-arabic": "^0.2.3",
     "@expo-google-fonts/syne": "^0.2.3",
+    "@expo/metro-runtime": "~4.0.1",
     "@expo/vector-icons": "^14.0.4",
+    "@opentelemetry/api": "^1.9.1",
     "@supabase/supabase-js": "^2.49.1",
     "expo": "~52.0.46",
     "expo-blur": "~14.0.3",
