@@ -4,6 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { ConfidenceBadge } from '@/components/ConfidenceBadge';
 import { MacroBar } from '@/components/MacroBar';
 import { colors } from '@/theme/colors';
+import { motion } from '@/theme/tokens';
 import { typography } from '@/theme/typography';
 import type { NutritionItem } from '@/types';
 
@@ -44,7 +45,7 @@ export function CalorieCard({
   useEffect(() => {
     let frame = 0;
     const start = Date.now();
-    const duration = 900;
+    const duration = motion.countUp;
     const tick = () => {
       const t = Math.min(1, (Date.now() - start) / duration);
       const eased = 1 - (1 - t) ** 3;
@@ -113,23 +114,24 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   foodName: {
-    ...typography.h1,
+    ...typography.foodTitle,
     color: colors.text,
-    marginBottom: 6,
+    marginBottom: 4,
   },
   servingMeta: {
     ...typography.bodySm,
     color: colors.textMuted,
-    marginBottom: 22,
+    marginBottom: 20,
   },
   calorieBlock: {
-    marginBottom: 28,
+    marginBottom: 22,
   },
   calorieLabel: {
     ...typography.caption,
     color: colors.accent,
     textTransform: 'uppercase',
-    marginBottom: 4,
+    letterSpacing: 0.6,
+    marginBottom: 2,
   },
   calorieRow: {
     flexDirection: 'row',
@@ -138,12 +140,16 @@ const styles = StyleSheet.create({
   },
   calorieNumber: {
     ...typography.heroNumber,
+    fontSize: 64,
+    letterSpacing: -2,
+    lineHeight: 68,
     color: colors.calories,
   },
   kcal: {
     ...typography.h2,
+    fontSize: 18,
     color: colors.textSecondary,
-    marginBottom: 12,
+    paddingBottom: 10,
   },
   macros: {
     marginBottom: 8,

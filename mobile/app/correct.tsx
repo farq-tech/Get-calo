@@ -186,7 +186,12 @@ export default function CorrectScreen() {
               {submitting ? (
                 <ActivityIndicator color={colors.textInverse} />
               ) : (
-                <Text style={styles.submitText}>
+                <Text
+                  style={[
+                    styles.submitText,
+                    (!selected && !customName.trim()) && styles.submitTextDisabled,
+                  ]}
+                >
                   {submitting ? t('correct.submitting') : t('correct.submit')}
                 </Text>
               )}
@@ -229,11 +234,12 @@ const styles = StyleSheet.create({
   input: {
     ...typography.body,
     color: colors.text,
-    backgroundColor: colors.bgElevated,
+    backgroundColor: colors.bg,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderStrong,
     borderRadius: 14,
     paddingHorizontal: 16,
+    minHeight: 52,
     paddingVertical: 14,
   },
   section: {
@@ -296,16 +302,22 @@ const styles = StyleSheet.create({
   submit: {
     marginTop: 8,
     backgroundColor: colors.accent,
-    borderRadius: 16,
+    borderRadius: 14,
+    minHeight: 52,
     paddingVertical: 16,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   submitDisabled: {
-    opacity: 0.45,
+    backgroundColor: colors.bgMuted,
+    opacity: 1,
   },
   submitText: {
     ...typography.button,
     color: colors.textInverse,
+  },
+  submitTextDisabled: {
+    color: colors.textMuted,
   },
   success: {
     ...typography.bodySm,

@@ -22,6 +22,7 @@ import { ShutterButton } from '@/components/ShutterButton';
 import { ViewfinderFrame } from '@/components/ViewfinderFrame';
 import { useInference } from '@/hooks/useInference';
 import { colors } from '@/theme/colors';
+import { radius, spacing } from '@/theme/tokens';
 import { typography } from '@/theme/typography';
 
 import demoMeal from '../assets/samples/demo-meal.jpg';
@@ -176,7 +177,9 @@ export default function CameraScreen() {
 
       <View style={[styles.topChrome, { paddingTop: insets.top + 8 }]}>
         <BrandMark size="hero" />
-        <Text style={styles.hint}>{t('camera.holdSteady')}</Text>
+        <View style={styles.hintPill}>
+          <Text style={styles.hint}>{t('camera.holdSteady')}</Text>
+        </View>
       </View>
 
       <View style={styles.viewfinderWrap} pointerEvents="none">
@@ -232,10 +235,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     zIndex: 2,
   },
+  hintPill: {
+    marginTop: 14,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: radius.full,
+    backgroundColor: colors.overlay,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
   hint: {
     ...typography.bodySm,
-    color: colors.textSecondary,
-    marginTop: 10,
+    fontWeight: '500',
+    color: colors.text,
+    textAlign: 'center',
   },
   viewfinderWrap: {
     ...StyleSheet.absoluteFillObject,
@@ -270,8 +283,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderStrong,
     borderRadius: 24,
+    backgroundColor: 'rgba(28,38,34,0.8)',
   },
   sideBtnSpacer: {
     width: 48,
@@ -295,11 +309,14 @@ const styles = StyleSheet.create({
     maxWidth: 340,
   },
   permBtn: {
-    marginTop: 32,
+    marginTop: spacing.xl,
+    minHeight: 52,
     backgroundColor: colors.accent,
     paddingHorizontal: 28,
     paddingVertical: 14,
-    borderRadius: 16,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   permBtnText: {
     ...typography.button,
@@ -312,16 +329,19 @@ const styles = StyleSheet.create({
   },
   secondaryBtn: {
     marginTop: 14,
+    minHeight: 52,
     paddingHorizontal: 28,
     paddingVertical: 14,
-    borderRadius: 16,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderColor: colors.accentBorder,
+    backgroundColor: colors.accentSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   secondaryBtnText: {
     ...typography.button,
-    color: colors.text,
+    color: colors.accent,
   },
   settingsLink: {
     marginTop: 28,

@@ -20,18 +20,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
+import { colors } from '@/theme/colors';
+import { motion, radius, spacing } from '@/theme/tokens';
 import { typography } from '@/theme/typography';
 
 export type ScanStepId = 'uploading' | 'identifying' | 'calculating' | 'preparing';
 
 const STEP_ORDER: ScanStepId[] = ['uploading', 'identifying', 'calculating', 'preparing'];
-
-const SCAN_GREEN = '#22C55E';
-const SCAN_GREEN_SOFT = 'rgba(34,197,94,0.35)';
-const PAGE_BG = '#FFFFFF';
-const TEXT = '#111827';
-const TEXT_MUTED = '#9CA3AF';
-const TEXT_ACTIVE = '#111827';
 
 type Props = {
   imageUri: string;
@@ -52,14 +47,14 @@ function StepIcon({ state }: { state: 'done' | 'active' | 'pending' }) {
   if (state === 'done') {
     return (
       <View style={[styles.stepIcon, styles.stepIconDone]}>
-        <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+        <Ionicons name="checkmark" size={14} color={colors.white} />
       </View>
     );
   }
   if (state === 'active') {
     return (
       <View style={[styles.stepIcon, styles.stepIconActive]}>
-        <ActivityIndicator size="small" color={SCAN_GREEN} />
+        <ActivityIndicator size="small" color={colors.lightAccent} />
       </View>
     );
   }
@@ -73,14 +68,20 @@ function CornerBracket({ position }: { position: 'tl' | 'tr' | 'bl' | 'br' }) {
     position: 'absolute' as const,
     width: edge,
     height: edge,
-    borderColor: '#FFFFFF',
+    borderColor: colors.accent,
   };
   if (position === 'tl') {
     return (
       <View
         style={[
           base,
-          { top: 10, left: 10, borderTopWidth: thick, borderLeftWidth: thick, borderTopLeftRadius: 6 },
+          {
+            top: -2,
+            left: -2,
+            borderTopWidth: thick,
+            borderLeftWidth: thick,
+            borderTopLeftRadius: radius.xl,
+          },
         ]}
       />
     );
@@ -90,7 +91,13 @@ function CornerBracket({ position }: { position: 'tl' | 'tr' | 'bl' | 'br' }) {
       <View
         style={[
           base,
-          { top: 10, right: 10, borderTopWidth: thick, borderRightWidth: thick, borderTopRightRadius: 6 },
+          {
+            top: -2,
+            right: -2,
+            borderTopWidth: thick,
+            borderRightWidth: thick,
+            borderTopRightRadius: radius.xl,
+          },
         ]}
       />
     );
@@ -101,11 +108,11 @@ function CornerBracket({ position }: { position: 'tl' | 'tr' | 'bl' | 'br' }) {
         style={[
           base,
           {
-            bottom: 10,
-            left: 10,
+            bottom: -2,
+            left: -2,
             borderBottomWidth: thick,
             borderLeftWidth: thick,
-            borderBottomLeftRadius: 6,
+            borderBottomLeftRadius: radius.xl,
           },
         ]}
       />
@@ -116,17 +123,20 @@ function CornerBracket({ position }: { position: 'tl' | 'tr' | 'bl' | 'br' }) {
       style={[
         base,
         {
-          bottom: 10,
-          right: 10,
+          bottom: -2,
+          right: -2,
           borderBottomWidth: thick,
           borderRightWidth: thick,
-          borderBottomRightRadius: 6,
+          borderBottomRightRadius: radius.xl,
         },
       ]}
     />
   );
 }
 
+/**
+ * Bright analysis surface — Design System light tokens + teal scan sweep.
+ */
 export function ScanProgressOverlay({ imageUri, step, onBack, imageSource }: Props) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -138,15 +148,23 @@ export function ScanProgressOverlay({ imageUri, step, onBack, imageSource }: Pro
   useEffect(() => {
     scanProgress.value = 0;
     scanProgress.value = withRepeat(
-      withTiming(1, { duration: 1400, easing: Easing.inOut(Easing.quad) }),
+      withTiming(1, {
+        duration: motion.scanSweep,
+        easing: Easing.bezier(0.4, 0, 0.4, 1),
+      }),
       -1,
-      true,
+      false,
     );
   }, [scanProgress]);
 
-  const scanLineStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: scanProgress.value * (frameSize - 24) }],
-  }));
+  const scanLineStyle = useAnimatedStyle(() => {
+    const t = scanProgress.value;
+    const fade = t < 0.08 ? t / 0.08 : t > 0.92 ? (1 - t) / 0.08 : 1;
+    return {
+      transform: [{ translateY: t * (frameSize - 8) }],
+      opacity: Math.max(0.2, fade),
+    };
+  });
 
   const source =
     imageSource ??
@@ -164,26 +182,28 @@ export function ScanProgressOverlay({ imageUri, step, onBack, imageSource }: Pro
           hitSlop={12}
           style={styles.backBtn}
         >
-          <Ionicons name="chevron-back" size={26} color={TEXT} />
+          <Ionicons name="chevron-back" size={26} color={colors.lightText} />
         </Pressable>
       </View>
 
       <View style={styles.center}>
-        <View style={[styles.frameWrap, { width: frameSize, height: frameSize }]}>
-          {source ? (
-            <Image source={source} style={styles.preview} resizeMode="cover" />
-          ) : (
-            <View style={[styles.preview, styles.previewFallback]} />
-          )}
-          <View style={styles.frameShade} pointerEvents="none" />
+        <View style={[styles.frameOuter, { width: frameSize, height: frameSize }]}>
+          <View style={styles.frameInner}>
+            {source ? (
+              <Image source={source} style={styles.preview} resizeMode="cover" />
+            ) : (
+              <View style={[styles.preview, styles.previewFallback]} />
+            )}
+            <View style={styles.frameShade} pointerEvents="none" />
+            <Animated.View style={[styles.scanLine, scanLineStyle]} pointerEvents="none">
+              <View style={styles.scanLineCore} />
+              <View style={styles.scanLineGlow} />
+            </Animated.View>
+          </View>
           <CornerBracket position="tl" />
           <CornerBracket position="tr" />
           <CornerBracket position="bl" />
           <CornerBracket position="br" />
-          <Animated.View style={[styles.scanLine, scanLineStyle]} pointerEvents="none">
-            <View style={styles.scanLineCore} />
-            <View style={styles.scanLineGlow} />
-          </Animated.View>
         </View>
 
         <View style={styles.steps}>
@@ -214,12 +234,12 @@ export function ScanProgressOverlay({ imageUri, step, onBack, imageSource }: Pro
 const styles = StyleSheet.create({
   root: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: PAGE_BG,
+    backgroundColor: colors.lightBg,
     zIndex: 40,
   },
   topBar: {
     height: 48,
-    paddingHorizontal: 8,
+    paddingHorizontal: spacing.sm,
     justifyContent: 'center',
   },
   backBtn: {
@@ -232,47 +252,57 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 24,
+    paddingHorizontal: spacing.lg,
     gap: 36,
   },
-  frameWrap: {
-    borderRadius: 18,
+  frameOuter: {
+    borderRadius: radius.xl + 4,
+    borderWidth: 1.5,
+    borderColor: colors.accentBorder,
+    padding: 0,
+    position: 'relative',
+  },
+  frameInner: {
+    flex: 1,
+    borderRadius: radius.xl,
     overflow: 'hidden',
-    backgroundColor: '#E5E7EB',
+    backgroundColor: colors.lightSurfaceMuted,
   },
   preview: {
     ...StyleSheet.absoluteFillObject,
   },
   frameShade: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.06)',
+    backgroundColor: 'rgba(10,14,13,0.04)',
   },
   scanLine: {
     position: 'absolute',
-    left: 12,
-    right: 12,
-    top: 12,
-    height: 3,
+    left: 0,
+    right: 0,
+    top: 4,
+    height: 2,
   },
   scanLineCore: {
     height: 2,
-    borderRadius: 2,
-    backgroundColor: SCAN_GREEN,
+    backgroundColor: colors.accent,
+    shadowColor: colors.accent,
+    shadowOpacity: 0.45,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 0 },
   },
   scanLineGlow: {
     position: 'absolute',
     left: 0,
     right: 0,
-    top: -6,
-    height: 14,
-    borderRadius: 8,
-    backgroundColor: SCAN_GREEN_SOFT,
+    top: -8,
+    height: 18,
+    backgroundColor: 'rgba(45,212,168,0.28)',
   },
   steps: {
     width: '100%',
     maxWidth: 320,
     gap: 18,
-    paddingHorizontal: 8,
+    paddingHorizontal: spacing.sm,
   },
   stepRow: {
     flexDirection: 'row',
@@ -287,33 +317,32 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   stepIconDone: {
-    backgroundColor: SCAN_GREEN,
+    backgroundColor: colors.lightAccent,
   },
   stepIconActive: {
     backgroundColor: 'transparent',
   },
   stepIconPending: {
     borderWidth: 2,
-    borderColor: '#D1D5DB',
+    borderColor: 'rgba(10,14,13,0.14)',
     backgroundColor: 'transparent',
   },
   stepText: {
     ...typography.body,
     fontSize: 17,
-    color: TEXT,
+    color: colors.lightText,
   },
   stepTextActive: {
-    color: TEXT_ACTIVE,
-    fontFamily: 'IBMPlexSansArabic_700Bold',
-    fontWeight: '700',
+    color: colors.lightText,
+    fontFamily: typography.h3.fontFamily,
   },
   stepTextPending: {
-    color: TEXT_MUTED,
+    color: colors.lightTextSecondary,
   },
   stepTextDone: {
-    color: TEXT,
+    color: colors.lightText,
   },
   previewFallback: {
-    backgroundColor: '#D1D5DB',
+    backgroundColor: colors.lightSurfaceMuted,
   },
 });
