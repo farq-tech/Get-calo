@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { createElement, useCallback, useRef, useState } from 'react';
 import {
   Platform,
   Pressable,
@@ -20,6 +20,7 @@ import { ScanProgressOverlay } from '@/components/ScanProgressOverlay';
 import { ShutterButton } from '@/components/ShutterButton';
 import { ViewfinderFrame } from '@/components/ViewfinderFrame';
 import { useInference } from '@/hooks/useInference';
+import { useWebCamera } from '@/hooks/useWebCamera';
 import { colors } from '@/theme/colors';
 import { radius } from '@/theme/tokens';
 import { typography } from '@/theme/typography';
@@ -28,6 +29,31 @@ import demoMeal from '../assets/samples/demo-meal.jpg';
 
 type ScanMode = 'food' | 'drink' | 'snack';
 
+function WebLiveVideo({
+  videoRef,
+}: {
+  videoRef: React.MutableRefObject<HTMLVideoElement | null>;
+}) {
+  return createElement('video', {
+    ref: (node: HTMLVideoElement | null) => {
+      videoRef.current = node;
+    },
+    autoPlay: true,
+    muted: true,
+    playsInline: true,
+    'webkit-playsinline': 'true',
+    style: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      objectFit: 'cover',
+      backgroundColor: '#070A09',
+    },
+  });
+}
+
 export default function CameraScreen() {
   const { t } = useTranslation();
   const router = useRouter();
@@ -35,6 +61,7 @@ export default function CameraScreen() {
   const { width } = useWindowDimensions();
   const cameraRef = useRef<CameraView>(null);
   const [permission, requestPermission] = useCameraPermissions();
+  const webCamera = useWebCamera();
   const { scanning, scanStep, previewUri, scan, cancelScan } = useInference();
   const [capturedUri, setCapturedUri] = useState<string | null>(null);
   const [mode, setMode] = useState<ScanMode>('food');
@@ -44,6 +71,9 @@ export default function CameraScreen() {
   const showAnalyze = scanning && analyzingUri != null && scanStep != null;
   const frameW = Math.max(0, width - 72);
   const frameH = 300;
+  const webReady = webCamera.status === 'ready';
+  const webBlocked =
+    webCamera.status === 'denied' || webCamera.status === 'unavailable';
 
   const runScan = useCallback(
     async (uri: string) => {
@@ -73,25 +103,38 @@ export default function CameraScreen() {
       if (!photo?.uri) return;
       await runScan(photo.uri);
     } catch (err) {
-      console.warn('[snapcal/camera] capture failed', err);
+      console.warn('[calora/camera] capture failed', err);
     }
   }, [runScan, scanning]);
 
-  const onWebUpload = useCallback(() => {
+  const onWebCapture = useCallback(async () => {
+    if (scanning) return;
+    if (webCamera.status !== 'ready') {
+      const ok = await webCamera.start();
+      if (!ok) return;
+      await new Promise((r) => setTimeout(r, 220));
+    }
+    const snap = webCamera.capture() ?? (await waitAndCapture(webCamera.capture, 3));
+    if (!snap) return;
+    await runScan(snap);
+  }, [runScan, scanning, webCamera]);
+
+  const onWebDemo = useCallback(() => {
+    void runScan('web-demo://meal');
+  }, [runScan]);
+
+  const onWebUploadFallback = useCallback(() => {
     if (typeof document === 'undefined') return;
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
+    input.capture = 'environment';
     input.onchange = () => {
       const file = input.files?.[0];
       if (!file) return;
       void runScan(URL.createObjectURL(file));
     };
     input.click();
-  }, [runScan]);
-
-  const onWebDemo = useCallback(() => {
-    void runScan('web-demo://meal');
   }, [runScan]);
 
   const modeChip = (id: ScanMode, label: string) => (
@@ -110,66 +153,125 @@ export default function CameraScreen() {
     return (
       <View style={styles.fill}>
         <StatusBar style="light" />
-        <View style={styles.phoneShell}>
+        {/* Single stable video element — stream stays attached across UI states */}
+        <WebLiveVideo videoRef={webCamera.videoRef} />
+
+        {!webReady ? (
           <LinearGradient
-            colors={['#101715', '#0C1210', '#070A09']}
+            colors={['#101715', colors.bg, colors.bg]}
             style={StyleSheet.absoluteFill}
           />
-          <View style={styles.blobA} pointerEvents="none" />
-          <View style={styles.blobB} pointerEvents="none" />
-
-          <View style={[styles.topChrome, { top: insets.top + 17 }]}>
-            <Pressable style={styles.roundBtn} onPress={() => router.push('/history')}>
-              <View style={styles.roundBtnBlur}>
-                <Ionicons name="time-outline" size={20} color={colors.text} />
-              </View>
-            </Pressable>
-            <View style={styles.hintPill}>
-              <Text style={styles.hint}>{t('camera.holdSteady')}</Text>
-            </View>
-            <Pressable style={styles.roundBtn} onPress={() => router.push('/settings')}>
-              <View style={styles.roundBtnBlur}>
-                <Ionicons name="settings-outline" size={20} color={colors.text} />
-              </View>
-            </Pressable>
-          </View>
-
-          <View
-            style={[styles.viewfinderWrap, { top: Math.max(140, insets.top + 100), width: frameW, height: frameH }]}
+        ) : (
+          <LinearGradient
+            colors={['rgba(7,10,9,0.4)', 'transparent', 'transparent', 'rgba(7,10,9,0.72)']}
+            locations={[0, 0.28, 0.55, 1]}
+            style={StyleSheet.absoluteFill}
             pointerEvents="none"
-          >
-            <ViewfinderFrame width={frameW} height={frameH} />
-          </View>
+          />
+        )}
 
-          <View style={[styles.modes, { bottom: Math.max(206, insets.bottom + 172) }]}>
-            <View style={styles.modeRow}>
-              {modeChip('food', t('camera.modeFood'))}
-              {modeChip('drink', t('camera.modeDrink'))}
-              {modeChip('snack', t('camera.modeSnack'))}
+        {!webReady ? (
+          <View style={styles.permission}>
+            <View style={styles.permissionGlow} pointerEvents="none" />
+            <View style={styles.permIcon}>
+              <Ionicons name="camera-outline" size={32} color={colors.accent} />
             </View>
-          </View>
-
-          <View style={[styles.bottomChrome, { bottom: Math.max(64, insets.bottom + 30) }]}>
-            <Pressable style={styles.sideBtn} onPress={() => router.push('/correct')}>
-              <Ionicons name="search" size={20} color={colors.textSecondary} />
-            </Pressable>
-            <View style={styles.shutterWrap}>
-              <ShutterButton onPress={onWebUpload} busy={scanning} />
+            <Text style={styles.permTitle}>{t('camera.permissionTitle')}</Text>
+            <Text style={styles.permBody}>{t('camera.permissionBody')}</Text>
+            <View style={styles.privacyPill}>
+              <Ionicons name="shield-checkmark" size={14} color={colors.success} />
+              <Text style={styles.privacyPillText}>{t('camera.permissionPrivacy')}</Text>
             </View>
             <Pressable
-              style={[styles.sideBtn, flashOn && styles.sideBtnActive]}
-              onPress={() => {
-                setFlashOn(true);
-                onWebDemo();
-              }}
+              style={styles.permBtn}
+              onPress={() => void webCamera.start()}
+              disabled={webCamera.status === 'requesting'}
             >
-              <Ionicons name="flash-outline" size={20} color={flashOn ? colors.accent : colors.textSecondary} />
+              <LinearGradient
+                colors={[...colors.gradientPrimary]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.permBtnGrad}
+              >
+                <Text style={styles.permBtnText}>
+                  {webCamera.status === 'requesting'
+                    ? t('common.loading')
+                    : t('camera.grantPermission')}
+                </Text>
+              </LinearGradient>
             </Pressable>
+            {webBlocked ? (
+              <Pressable onPress={onWebUploadFallback} style={styles.notNow}>
+                <Text style={styles.webFallbackAction}>{t('camera.uploadPhoto')}</Text>
+              </Pressable>
+            ) : (
+              <Pressable onPress={onWebUploadFallback} style={styles.notNow}>
+                <Text style={styles.notNowText}>{t('camera.notNow')}</Text>
+              </Pressable>
+            )}
           </View>
-          <Text style={[styles.tapHint, { bottom: Math.max(36, insets.bottom + 2) }]}>
-            {t('camera.tapToScan')}
-          </Text>
-        </View>
+        ) : (
+          <View style={styles.phoneShell} pointerEvents="box-none">
+            <View style={[styles.topChrome, { top: insets.top + 17 }]}>
+              <Pressable style={styles.roundBtn} onPress={() => router.push('/history')}>
+                <View style={styles.roundBtnBlur}>
+                  <Ionicons name="time-outline" size={20} color={colors.text} />
+                </View>
+              </Pressable>
+              <View style={styles.hintPill}>
+                <Text style={styles.hint}>{t('camera.holdSteady')}</Text>
+              </View>
+              <Pressable style={styles.roundBtn} onPress={() => router.push('/settings')}>
+                <View style={styles.roundBtnBlur}>
+                  <Ionicons name="settings-outline" size={20} color={colors.text} />
+                </View>
+              </Pressable>
+            </View>
+
+            <View
+              style={[
+                styles.viewfinderWrap,
+                { top: Math.max(140, insets.top + 100), width: frameW, height: frameH },
+              ]}
+              pointerEvents="none"
+            >
+              <ViewfinderFrame width={frameW} height={frameH} />
+            </View>
+
+            <View style={[styles.modes, { bottom: Math.max(206, insets.bottom + 172) }]}>
+              <View style={styles.modeRow}>
+                {modeChip('food', t('camera.modeFood'))}
+                {modeChip('drink', t('camera.modeDrink'))}
+                {modeChip('snack', t('camera.modeSnack'))}
+              </View>
+            </View>
+
+            <View style={[styles.bottomChrome, { bottom: Math.max(64, insets.bottom + 30) }]}>
+              <Pressable style={styles.sideBtn} onPress={() => router.push('/correct')}>
+                <Ionicons name="search" size={20} color={colors.textSecondary} />
+              </Pressable>
+              <View style={styles.shutterWrap}>
+                <ShutterButton onPress={() => void onWebCapture()} busy={scanning} />
+              </View>
+              <Pressable
+                style={[styles.sideBtn, flashOn && styles.sideBtnActive]}
+                onPress={() => {
+                  setFlashOn((v) => !v);
+                  onWebDemo();
+                }}
+              >
+                <Ionicons
+                  name="flash-outline"
+                  size={20}
+                  color={flashOn ? colors.accent : colors.textSecondary}
+                />
+              </Pressable>
+            </View>
+            <Text style={[styles.tapHint, { bottom: Math.max(36, insets.bottom + 2) }]}>
+              {t('camera.tapToScan')}
+            </Text>
+          </View>
+        )}
 
         {showAnalyze ? (
           <ScanProgressOverlay
@@ -308,37 +410,29 @@ export default function CameraScreen() {
   );
 }
 
+async function waitAndCapture(
+  capture: () => string | null,
+  tries: number,
+): Promise<string | null> {
+  for (let i = 0; i < tries; i++) {
+    await new Promise((r) => setTimeout(r, 160));
+    const snap = capture();
+    if (snap) return snap;
+  }
+  return null;
+}
+
 const styles = StyleSheet.create({
   fill: {
     flex: 1,
     backgroundColor: colors.bg,
   },
   phoneShell: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
     maxWidth: 430,
     width: '100%',
     alignSelf: 'center',
     overflow: 'hidden',
-    position: 'relative',
-  },
-  blobA: {
-    position: 'absolute',
-    width: 280,
-    height: 280,
-    borderRadius: 140,
-    top: '26%',
-    left: '50%',
-    marginLeft: -140,
-    backgroundColor: 'rgba(45,212,168,0.10)',
-  },
-  blobB: {
-    position: 'absolute',
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    top: '38%',
-    left: '24%',
-    backgroundColor: 'rgba(94,234,212,0.07)',
   },
   topChrome: {
     position: 'absolute',
@@ -456,10 +550,11 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   permission: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
     paddingHorizontal: 32,
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 3,
   },
   permissionGlow: {
     position: 'absolute',
@@ -540,28 +635,10 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: colors.textMuted,
   },
-  webActions: {
-    alignItems: 'center',
-    width: '100%',
-    maxWidth: 340,
-    marginTop: 8,
-  },
-  secondaryBtn: {
-    marginTop: 14,
-    minHeight: 54,
-    width: '100%',
-    maxWidth: 300,
-    paddingHorizontal: 28,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.borderStrong,
-    backgroundColor: 'transparent',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  secondaryBtnText: {
-    ...typography.button,
-    fontWeight: '600',
-    color: colors.text,
+  webFallbackAction: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.accent,
+    textAlign: 'center',
   },
 });
