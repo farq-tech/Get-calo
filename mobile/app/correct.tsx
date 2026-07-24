@@ -73,7 +73,7 @@ export default function CorrectScreen() {
         locale,
       }).catch(() => undefined);
     }
-    router.back();
+    router.replace('/result');
   };
 
   return (

@@ -40,7 +40,29 @@ export const useScanStore = create<ScanState>((set, get) => ({
   setLastResult: (lastResult) => set({ lastResult }),
   applyNutritionOverride: (nutrition) => {
     const current = get().lastResult;
-    if (!current || !nutrition) return;
+    if (!nutrition) return;
+    if (!current) {
+      const detection = {
+        classId: nutrition.classId,
+        confidence: 1,
+        bbox: { x: 0.2, y: 0.2, width: 0.6, height: 0.6 },
+        label: nutrition.nameEn,
+      };
+      set({
+        lastResult: {
+          imageUri: '',
+          detections: [detection],
+          topDetection: detection,
+          nutrition,
+          confidence: 1,
+          lowConfidence: false,
+          modelVersion: 'manual-1.0',
+          inferredAt: new Date().toISOString(),
+          usedFallback: true,
+        },
+      });
+      return;
+    }
     set({
       lastResult: {
         ...current,
