@@ -3,32 +3,11 @@
  * POST { imageBase64, mimeType?, locale? } → Gemini food + nutrition JSON
  */
 
-const SYSTEM_PROMPT = `You are Calora, an expert nutrition vision assistant for Gulf / Saudi everyday food, drinks, snacks, and grocery products.
-
-Analyze the photo and identify the main edible item(s). Prefer specific product names when clear (e.g. Pepsi can, laban bottle, basmati rice pack). If unsure, give the best generic food name.
-
-Return ONLY valid JSON (no markdown) with this shape:
-{
-  "name_en": string,
-  "name_ar": string,
-  "confidence": number,
-  "calories_kcal": number,
-  "protein_g": number,
-  "carbs_g": number,
-  "fat_g": number,
-  "serving_size_g": number,
-  "serving_label_en": string,
-  "serving_label_ar": string,
-  "category": string,
-  "notes_en": string
-}
-
-Rules:
-- Soft drinks, juice, milk, laban, water bottles, cans, and grocery packs ARE food/drink — identify them normally.
-- Only if the image is clearly not edible (person, receipt, empty table) use low confidence and name_en "Unknown item".
-- Calories/macros must be realistic for the serving_size_g you choose.
-- Use Arabic (Saudi) for name_ar and serving_label_ar.
-- confidence >= 0.75 when clearly identifiable.`;
+const SYSTEM_PROMPT = `Identify the main food/drink/grocery item in the photo (Gulf/Saudi context OK).
+Cans, bottles, laban, juice, snacks ARE edible — name them normally.
+Return ONLY JSON:
+{"name_en":"","name_ar":"","confidence":0.9,"calories_kcal":0,"protein_g":0,"carbs_g":0,"fat_g":0,"serving_size_g":100,"serving_label_en":"serving","serving_label_ar":"حصة","category":"food"}
+confidence 0-1. Calories for one typical serving. Arabic for name_ar/serving_label_ar.`;
 
 function send(res, status, body) {
   res.statusCode = status;
@@ -89,7 +68,7 @@ async function callGemini(imageBase64, mimeType, locale) {
       {
         role: 'user',
         parts: [
-          { text: `${SYSTEM_PROMPT}\n\nUser locale preference: ${locale}` },
+          { text: SYSTEM_PROMPT },
           {
             inlineData: {
               mimeType: mimeType || 'image/jpeg',
@@ -100,9 +79,11 @@ async function callGemini(imageBase64, mimeType, locale) {
       },
     ],
     generationConfig: {
-      temperature: 0.2,
-      maxOutputTokens: 800,
+      temperature: 0.1,
+      maxOutputTokens: 200,
       responseMimeType: 'application/json',
+      // Disable thinking tokens — biggest cost saver on 2.5 Flash.
+      thinkingConfig: { thinkingBudget: 0 },
     },
   };
 

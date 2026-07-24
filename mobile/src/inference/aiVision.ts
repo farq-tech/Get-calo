@@ -1,6 +1,6 @@
 /**
  * Cloud AI vision scan (Gemini) — primary recognition path for Calora.
- * Falls back is handled by the caller (YOLO / catalog).
+ * Cost-optimized: compress image before upload; short server prompt; no thinking tokens.
  */
 
 import { Asset } from 'expo-asset';
@@ -10,7 +10,10 @@ import type { NutritionItem } from '@/types';
 
 import demoMeal from '../../assets/samples/demo-meal.jpg';
 
-export const AI_MODEL_VERSION = 'ai-gemini-vision-1.0';
+export const AI_MODEL_VERSION = 'ai-gemini-vision-1.1-econ';
+
+const MAX_SIDE = 768;
+const JPEG_QUALITY = 0.7;
 
 export interface AiFoodResult {
   nameEn: string;
@@ -29,6 +32,33 @@ function apiBase(): string {
   return (process.env.EXPO_PUBLIC_AI_API_BASE || '').replace(/\/$/, '');
 }
 
+async function blobToCompressedJpegBase64(blob: Blob): Promise<string> {
+  if (Platform.OS !== 'web' || typeof document === 'undefined') {
+    const buffer = await blob.arrayBuffer();
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    const chunk = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunk) {
+      binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+    }
+    return globalThis.btoa(binary);
+  }
+
+  const bitmap = await createImageBitmap(blob);
+  const scale = Math.min(1, MAX_SIDE / Math.max(bitmap.width, bitmap.height));
+  const w = Math.max(1, Math.round(bitmap.width * scale));
+  const h = Math.max(1, Math.round(bitmap.height * scale));
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Canvas unavailable');
+  ctx.drawImage(bitmap, 0, 0, w, h);
+  bitmap.close?.();
+  const dataUrl = canvas.toDataURL('image/jpeg', JPEG_QUALITY);
+  return dataUrl.slice(dataUrl.indexOf(',') + 1);
+}
+
 async function uriToBase64(uri: string): Promise<{ base64: string; mimeType: string }> {
   let resolved = uri;
   if (uri.startsWith('web-demo:') || uri.startsWith('demo:')) {
@@ -39,41 +69,18 @@ async function uriToBase64(uri: string): Promise<{ base64: string; mimeType: str
 
   const response = await fetch(resolved);
   const blob = await response.blob();
-  const mimeType = blob.type || 'image/jpeg';
-
-  if (Platform.OS === 'web') {
-    const base64 = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const result = String(reader.result || '');
-        const comma = result.indexOf(',');
-        resolve(comma >= 0 ? result.slice(comma + 1) : result);
-      };
-      reader.onerror = () => reject(new Error('Failed to read image'));
-      reader.readAsDataURL(blob);
-    });
-    return { base64, mimeType };
-  }
-
-  // Native: arrayBuffer → base64
-  const buffer = await blob.arrayBuffer();
-  const bytes = new Uint8Array(buffer);
-  let binary = '';
-  const chunk = 0x8000;
-  for (let i = 0; i < bytes.length; i += chunk) {
-    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
-  }
-  // btoa available in RN hermes / expo
-  const base64 = globalThis.btoa(binary);
-  return { base64, mimeType };
+  const base64 = await blobToCompressedJpegBase64(blob);
+  return { base64, mimeType: 'image/jpeg' };
 }
 
 function slugify(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '_')
-    .replace(/^_|_$/g, '')
-    .slice(0, 64) || 'item';
+  return (
+    name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_|_$/g, '')
+      .slice(0, 64) || 'item'
+  );
 }
 
 export async function analyzeFoodWithAi(
@@ -132,7 +139,6 @@ export async function analyzeFoodWithAi(
 }
 
 export function isAiScanEnabled(): boolean {
-  // Default ON for web; native needs EXPO_PUBLIC_AI_API_BASE or same-origin proxy.
   if (process.env.EXPO_PUBLIC_AI_SCAN === '0') return false;
   if (Platform.OS === 'web') return true;
   return Boolean(process.env.EXPO_PUBLIC_AI_API_BASE);
