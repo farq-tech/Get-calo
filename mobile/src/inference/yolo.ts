@@ -94,9 +94,11 @@ function hashUri(uri: string): number {
 }
 
 function mockDetections(uri: string, threshold: number): Detection[] {
+  // Bundled auto model has 40 classes (class_id 0–39) until a larger model ships.
+  const DEMO_CLASS_COUNT = 40;
   const seed = hashUri(uri);
-  const classId = seed % 20;
-  const confidence = 0.35 + ((seed % 60) / 100); // 0.35 – 0.94
+  const classId = seed % DEMO_CLASS_COUNT;
+  const confidence = 0.55 + ((seed % 40) / 100); // 0.55 – 0.94 (usually above threshold)
   const jitter = ((seed >> 8) % 20) / 100;
 
   const primary: Detection = {
@@ -111,8 +113,8 @@ function mockDetections(uri: string, threshold: number): Detection[] {
   };
 
   const secondary: Detection = {
-    classId: (classId + 7) % 20,
-    confidence: Math.max(0.15, primary.confidence - 0.25),
+    classId: (classId + 3) % DEMO_CLASS_COUNT,
+    confidence: Math.max(0.15, primary.confidence - 0.28),
     bbox: {
       x: 0.55,
       y: 0.55,
