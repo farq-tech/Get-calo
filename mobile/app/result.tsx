@@ -166,7 +166,7 @@ export default function ResultScreen() {
         </View>
 
         <Pressable style={styles.changeRow} onPress={() => router.push('/correct')}>
-          <Ionicons name="swap-horizontal" size={18} color={colors.textSecondary} />
+          <Ionicons name="list-outline" size={18} color={colors.textSecondary} />
           <Text style={styles.changeLabel}>{t('result.notRight')}</Text>
           <Text style={styles.changeAction}>{t('result.correct')}</Text>
         </Pressable>

@@ -7,7 +7,7 @@
   "camera": {
     "permissionTitle": "يلزم الوصول للكاميرا",
     "permissionBody": "SnapCal تتعرف على الأكل والمشروبات على جهازك مباشرة.",
-    "permissionPrivacy": "الصور تبقى خاصة",
+    "permissionPrivacy": "الصور لا تغادر جهازك",
     "grantPermission": "تفعيل الكاميرا",
     "notNow": "ليس الآن",
     "scanning": "جاري المسح…",
@@ -22,7 +22,7 @@
     "webBody": "ارفع صورة أكل أو مشروب أو سناك — ثم أكّد أو ابحث في الكتالوج عن العنصر الصحيح.",
     "uploadPhoto": "رفع صورة",
     "demoScan": "مسح تجريبي",
-    "onDevice": "يعمل على جهازك",
+    "onDevice": "يعمل على الجهاز · دون اتصال",
     "analyzeMsgs": {
       "recognize": "التعرّف على الطعام…",
       "ingredients": "رصد المكونات…",

@@ -76,16 +76,17 @@ export default function SettingsScreen() {
         </View>
 
         <SectionTitle label={t('settings.language')} />
-        <View style={styles.segment}>
-          <LanguageButton
+        <View style={styles.card}>
+          <LanguageRow
             label={t('settings.english')}
             active={locale === 'en'}
             onPress={() => void changeLanguage('en')}
           />
-          <LanguageButton
+          <LanguageRow
             label={t('settings.arabic')}
             active={locale === 'ar'}
             onPress={() => void changeLanguage('ar')}
+            last
           />
         </View>
 
@@ -148,18 +149,26 @@ function SettingsRow({
   );
 }
 
-function LanguageButton({
+function LanguageRow({
   label,
   active,
   onPress,
+  last = false,
 }: {
   label: string;
   active: boolean;
   onPress: () => void;
+  last?: boolean;
 }) {
   return (
-    <Pressable onPress={onPress} style={[styles.segBtn, active && styles.segActive]}>
-      <Text style={[styles.segText, active && styles.segTextActive]}>{label}</Text>
+    <Pressable
+      onPress={onPress}
+      style={[styles.row, last && styles.lastRow]}
+      accessibilityRole="button"
+      accessibilityState={{ selected: active }}
+    >
+      <Text style={styles.rowLabel}>{label}</Text>
+      {active ? <Ionicons name="checkmark" size={17} color={colors.accent} /> : null}
     </Pressable>
   );
 }
@@ -215,32 +224,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     overflow: 'hidden',
-  },
-  segment: {
-    flexDirection: 'row',
-    backgroundColor: colors.bgElevated,
-    borderRadius: 12,
-    padding: 3,
-    gap: 2,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  segBtn: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 9,
-    alignItems: 'center',
-  },
-  segActive: {
-    backgroundColor: colors.bgMuted,
-  },
-  segText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.textMuted,
-  },
-  segTextActive: {
-    color: colors.text,
   },
   row: {
     flexDirection: 'row',

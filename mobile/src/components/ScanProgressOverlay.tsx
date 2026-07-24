@@ -52,8 +52,10 @@ type Props = {
   imageSource?: ImageSourcePropType;
 };
 
+const PARTICLE_FADE = [1, 0.55, 0.28] as const;
+
 /**
- * Cinematic analyzing screen — matches Calora App.html prototype.
+ * Cinematic analyzing screen — matches SnapCal App.html prototype.
  * Signature: types "Sattam" → credit → Sattam engine + live steps.
  */
 export function ScanProgressOverlay({ imageUri, step, onBack, imageSource }: Props) {
@@ -68,6 +70,7 @@ export function ScanProgressOverlay({ imageUri, step, onBack, imageSource }: Pro
   const sweep = useSharedValue(0);
   const ken = useSharedValue(0);
   const glow = useSharedValue(0);
+  const particle = useSharedValue(0);
 
   const word = 'Sattam';
   const stepIndex = SCAN_STEP_ORDER.indexOf(step);
@@ -104,7 +107,12 @@ export function ScanProgressOverlay({ imageUri, step, onBack, imageSource }: Pro
       -1,
       true,
     );
-  }, [glow, ken, sweep]);
+    particle.value = withRepeat(
+      withTiming(1, { duration: 4200, easing: Easing.inOut(Easing.ease) }),
+      -1,
+      true,
+    );
+  }, [glow, ken, particle, sweep]);
 
   const sweepStyle = useAnimatedStyle(() => ({
     top: interpolate(sweep.value, [0, 1], [-40, height * 0.75]),
@@ -120,6 +128,23 @@ export function ScanProgressOverlay({ imageUri, step, onBack, imageSource }: Pro
     transform: [{ scale: interpolate(glow.value, [0, 1], [0.94, 1.06]) }],
   }));
 
+  const particleA = useAnimatedStyle(() => ({
+    opacity: interpolate(particle.value, [0, 0.5, 1], [0.35, 1, 0.35]),
+    transform: [{ translateY: interpolate(particle.value, [0, 1], [0, -14]) }],
+  }));
+  const particleB = useAnimatedStyle(() => ({
+    opacity: interpolate(particle.value, [0, 0.5, 1], [1, 0.35, 1]),
+    transform: [{ translateY: interpolate(particle.value, [0, 1], [-8, 10]) }],
+  }));
+  const particleC = useAnimatedStyle(() => ({
+    opacity: interpolate(particle.value, [0, 0.5, 1], [0.5, 1, 0.45]),
+    transform: [{ translateY: interpolate(particle.value, [0, 1], [6, -10]) }],
+  }));
+  const particleD = useAnimatedStyle(() => ({
+    opacity: interpolate(particle.value, [0, 0.5, 1], [0.7, 0.3, 0.7]),
+    transform: [{ translateY: interpolate(particle.value, [0, 1], [-4, 12]) }],
+  }));
+
   const source =
     imageSource ??
     (imageUri.startsWith('web-demo:') || imageUri.startsWith('demo:')
@@ -127,12 +152,20 @@ export function ScanProgressOverlay({ imageUri, step, onBack, imageSource }: Pro
       : { uri: imageUri });
 
   const visibleSteps = useMemo(() => {
-    return SCAN_STEP_ORDER.slice(0, Math.max(1, stepIndex + 1)).map((id, i) => ({
-      id,
-      done: i < stepIndex,
-      active: i === stepIndex,
-      label: t(`camera.analyzeMsgs.${id}`),
-    }));
+    const end = Math.max(1, stepIndex + 1);
+    const start = Math.max(0, end - 3);
+    const slice = SCAN_STEP_ORDER.slice(start, end);
+    return slice.map((id, i) => {
+      const absolute = start + i;
+      const fromEnd = slice.length - 1 - i;
+      return {
+        id,
+        done: absolute < stepIndex,
+        active: absolute === stepIndex,
+        label: t(`camera.analyzeMsgs.${id}`),
+        opacity: PARTICLE_FADE[Math.min(fromEnd, PARTICLE_FADE.length - 1)] ?? 1,
+      };
+    });
   }, [stepIndex, t]);
 
   const showCredit = phase === 'credit' || phase === 'engine';
@@ -152,17 +185,23 @@ export function ScanProgressOverlay({ imageUri, step, onBack, imageSource }: Pro
 
       <Animated.View style={[styles.glow, glowStyle]} pointerEvents="none" />
       <Animated.View style={[styles.sweep, sweepStyle]} pointerEvents="none" />
+      <Animated.View style={[styles.particle, styles.particleA, particleA]} pointerEvents="none" />
+      <Animated.View style={[styles.particle, styles.particleB, particleB]} pointerEvents="none" />
+      <Animated.View style={[styles.particle, styles.particleC, particleC]} pointerEvents="none" />
+      <Animated.View style={[styles.particle, styles.particleD, particleD]} pointerEvents="none" />
       <View style={styles.vignette} pointerEvents="none" />
 
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={t('common.back')}
-        onPress={onBack}
-        hitSlop={12}
-        style={[styles.backBtn, { top: insets.top + 8 }]}
-      >
-        <Ionicons name="chevron-back" size={22} color={colors.text} />
-      </Pressable>
+      {onBack ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('common.back')}
+          onPress={onBack}
+          hitSlop={12}
+          style={[styles.backBtn, { top: insets.top + 8 }]}
+        >
+          <Ionicons name="chevron-back" size={22} color={colors.text} />
+        </Pressable>
+      ) : null}
 
       <View style={styles.center}>
         <Text style={[styles.credit, { opacity: showCredit ? 1 : 0 }]}>
@@ -187,7 +226,11 @@ export function ScanProgressOverlay({ imageUri, step, onBack, imageSource }: Pro
 
         <View style={styles.steps}>
           {visibleSteps.map((row) => (
-            <Animated.View key={row.id} entering={FadeInUp.duration(420)} style={styles.stepRow}>
+            <Animated.View
+              key={row.id}
+              entering={FadeInUp.duration(420)}
+              style={[styles.stepRow, { opacity: row.opacity }]}
+            >
               <View style={[styles.stepIcon, row.done && styles.stepIconDone]}>
                 {row.done ? (
                   <Ionicons name="checkmark" size={11} color={colors.accent} />
@@ -261,6 +304,50 @@ const styles = StyleSheet.create({
     shadowColor: colors.accent,
     shadowOpacity: 0.35,
     shadowRadius: 24,
+  },
+  particle: {
+    position: 'absolute',
+    borderRadius: 3,
+  },
+  particleA: {
+    top: '34%',
+    left: '30%',
+    width: 5,
+    height: 5,
+    backgroundColor: '#5EEAD4',
+    shadowColor: '#5EEAD4',
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
+  },
+  particleB: {
+    top: '28%',
+    right: '28%',
+    width: 4,
+    height: 4,
+    backgroundColor: '#2DD4A8',
+    shadowColor: '#2DD4A8',
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
+  },
+  particleC: {
+    top: '46%',
+    right: '34%',
+    width: 3,
+    height: 3,
+    backgroundColor: '#F2F7F5',
+    shadowColor: '#F2F7F5',
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+  },
+  particleD: {
+    top: '42%',
+    left: '36%',
+    width: 3,
+    height: 3,
+    backgroundColor: '#5EEAD4',
+    shadowColor: '#5EEAD4',
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
   },
   vignette: {
     ...StyleSheet.absoluteFillObject,

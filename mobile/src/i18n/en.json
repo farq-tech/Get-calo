@@ -7,7 +7,7 @@
   "camera": {
     "permissionTitle": "Camera access needed",
     "permissionBody": "SnapCal recognizes food and drinks right on your device.",
-    "permissionPrivacy": "Photos stay private",
+    "permissionPrivacy": "Photos never leave your phone",
     "grantPermission": "Enable camera",
     "notNow": "Not now",
     "scanning": "Scanning…",
@@ -22,7 +22,7 @@
     "webBody": "Upload a photo of food, a drink, or a snack — then confirm or search the catalog for the right item.",
     "uploadPhoto": "Upload photo",
     "demoScan": "Run demo scan",
-    "onDevice": "Works on your device",
+    "onDevice": "On-device · works offline",
     "analyzeMsgs": {
       "recognize": "Recognizing food…",
       "ingredients": "Detecting ingredients…",

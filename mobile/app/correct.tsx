@@ -96,18 +96,20 @@ export default function CorrectScreen() {
             color={colors.text}
           />
         </Pressable>
-        <View style={styles.searchBox}>
-          <Ionicons name="search" size={17} color={colors.textMuted} />
-          <TextInput
-            value={query}
-            onChangeText={setQuery}
-            placeholder={t('correct.searchPlaceholder')}
-            placeholderTextColor={colors.textMuted}
-            style={styles.input}
-            autoCorrect={false}
-            autoCapitalize="none"
-            autoFocus
-          />
+        <View style={styles.searchRing}>
+          <View style={styles.searchBox}>
+            <Ionicons name="search" size={17} color={colors.textMuted} />
+            <TextInput
+              value={query}
+              onChangeText={setQuery}
+              placeholder={t('correct.searchPlaceholder')}
+              placeholderTextColor={colors.textMuted}
+              style={styles.input}
+              autoCorrect={false}
+              autoCapitalize="none"
+              autoFocus
+            />
+          </View>
         </View>
       </View>
 
@@ -123,8 +125,8 @@ export default function CorrectScreen() {
           {suggestions.map((item) => (
             <Pressable
               key={item.itemIdentity}
-              onPress={() => setQuery(displayName(item))}
-              style={styles.chip}
+              onPress={() => void onPick(item)}
+              style={({ pressed }) => [styles.chip, pressed && styles.chipPressed]}
             >
               <Text style={styles.chipText}>{displayName(item)}</Text>
             </Pressable>
@@ -212,6 +214,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  searchRing: {
+    flex: 1,
+    borderRadius: 16,
+    padding: 3,
+    backgroundColor: 'rgba(45,212,168,0.12)',
+  },
   searchBox: {
     flex: 1,
     height: 48,
@@ -219,10 +227,6 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: colors.accent,
     backgroundColor: colors.bgElevated,
-    shadowColor: colors.accent,
-    shadowOpacity: 0.12,
-    shadowRadius: 0,
-    shadowOffset: { width: 0, height: 0 },
     paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
@@ -251,6 +255,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bgMuted,
     borderWidth: 1,
     borderColor: colors.border,
+  },
+  chipPressed: {
+    borderColor: 'rgba(45,212,168,0.35)',
   },
   chipText: {
     fontSize: 13,

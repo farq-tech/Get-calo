@@ -110,42 +110,74 @@ export default function CameraScreen() {
     return (
       <View style={styles.fill}>
         <StatusBar style="light" />
-        <LinearGradient colors={['#101715', colors.bg, colors.bg]} style={styles.fill}>
-          <View style={styles.permissionGlow} pointerEvents="none" />
-          <View style={[styles.permission, { paddingTop: insets.top + 32 }]}>
-            <View style={styles.permIcon}>
-              <Ionicons name="camera-outline" size={32} color={colors.accent} />
-            </View>
-            <Text style={styles.permTitle}>{t('camera.webTitle')}</Text>
-            <Text style={styles.permBody}>{t('camera.webBody')}</Text>
+        <View style={styles.phoneShell}>
+          <LinearGradient
+            colors={['#101715', '#0C1210', '#070A09']}
+            style={StyleSheet.absoluteFill}
+          />
+          <View style={styles.blobA} pointerEvents="none" />
+          <View style={styles.blobB} pointerEvents="none" />
 
-            {!scanning ? (
-              <View style={styles.webActions}>
-                <Pressable style={styles.permBtn} onPress={onWebUpload}>
-                  <LinearGradient
-                    colors={[...colors.gradientPrimary]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.permBtnGrad}
-                  >
-                    <Text style={styles.permBtnText}>{t('camera.uploadPhoto')}</Text>
-                  </LinearGradient>
-                </Pressable>
-                <Pressable style={styles.secondaryBtn} onPress={onWebDemo}>
-                  <Text style={styles.secondaryBtnText}>{t('camera.demoScan')}</Text>
-                </Pressable>
+          <View style={[styles.topChrome, { top: insets.top + 17 }]}>
+            <Pressable style={styles.roundBtn} onPress={() => router.push('/history')}>
+              <View style={styles.roundBtnBlur}>
+                <Ionicons name="time-outline" size={20} color={colors.text} />
               </View>
-            ) : null}
+            </Pressable>
+            <View style={styles.hintPill}>
+              <Text style={styles.hint}>{t('camera.holdSteady')}</Text>
+            </View>
+            <Pressable style={styles.roundBtn} onPress={() => router.push('/settings')}>
+              <View style={styles.roundBtnBlur}>
+                <Ionicons name="settings-outline" size={20} color={colors.text} />
+              </View>
+            </Pressable>
           </View>
-        </LinearGradient>
+
+          <View
+            style={[styles.viewfinderWrap, { top: Math.max(140, insets.top + 100), width: frameW, height: frameH }]}
+            pointerEvents="none"
+          >
+            <ViewfinderFrame width={frameW} height={frameH} />
+          </View>
+
+          <View style={[styles.modes, { bottom: Math.max(206, insets.bottom + 172) }]}>
+            <View style={styles.modeRow}>
+              {modeChip('food', t('camera.modeFood'))}
+              {modeChip('drink', t('camera.modeDrink'))}
+              {modeChip('snack', t('camera.modeSnack'))}
+            </View>
+          </View>
+
+          <View style={[styles.bottomChrome, { bottom: Math.max(64, insets.bottom + 30) }]}>
+            <Pressable style={styles.sideBtn} onPress={() => router.push('/correct')}>
+              <Ionicons name="search" size={20} color={colors.textSecondary} />
+            </Pressable>
+            <View style={styles.shutterWrap}>
+              <ShutterButton onPress={onWebUpload} busy={scanning} />
+            </View>
+            <Pressable
+              style={[styles.sideBtn, flashOn && styles.sideBtnActive]}
+              onPress={() => {
+                setFlashOn(true);
+                onWebDemo();
+              }}
+            >
+              <Ionicons name="flash-outline" size={20} color={flashOn ? colors.accent : colors.textSecondary} />
+            </Pressable>
+          </View>
+          <Text style={[styles.tapHint, { bottom: Math.max(36, insets.bottom + 2) }]}>
+            {t('camera.tapToScan')}
+          </Text>
+        </View>
 
         {showAnalyze ? (
           <ScanProgressOverlay
-            imageUri={analyzingUri}
-            step={scanStep}
+            imageUri={analyzingUri!}
+            step={scanStep!}
             onBack={onBackFromScan}
             imageSource={
-              analyzingUri.startsWith('web-demo:') || analyzingUri.startsWith('demo:')
+              analyzingUri!.startsWith('web-demo:') || analyzingUri!.startsWith('demo:')
                 ? demoMeal
                 : undefined
             }
@@ -200,6 +232,7 @@ export default function CameraScreen() {
         style={StyleSheet.absoluteFill}
         facing="back"
         mode="picture"
+        enableTorch={flashOn}
       />
 
       <LinearGradient
@@ -279,6 +312,33 @@ const styles = StyleSheet.create({
   fill: {
     flex: 1,
     backgroundColor: colors.bg,
+  },
+  phoneShell: {
+    flex: 1,
+    maxWidth: 430,
+    width: '100%',
+    alignSelf: 'center',
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  blobA: {
+    position: 'absolute',
+    width: 280,
+    height: 280,
+    borderRadius: 140,
+    top: '26%',
+    left: '50%',
+    marginLeft: -140,
+    backgroundColor: 'rgba(45,212,168,0.10)',
+  },
+  blobB: {
+    position: 'absolute',
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    top: '38%',
+    left: '24%',
+    backgroundColor: 'rgba(94,234,212,0.07)',
   },
   topChrome: {
     position: 'absolute',

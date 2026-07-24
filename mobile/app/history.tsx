@@ -72,7 +72,12 @@ export default function HistoryScreen() {
             </Text>
           </View>
           <View style={styles.progressTrack}>
-            <View style={[styles.progressFill, { width: `${goalPct}%` }]} />
+            <LinearGradient
+              colors={['#2DD4A8', '#10B981']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={[styles.progressFill, { width: `${goalPct}%` }]}
+            />
           </View>
           <Text style={styles.goalText}>
             {goalPct}% {t('history.ofGoal')}
@@ -104,7 +109,7 @@ export default function HistoryScreen() {
         {visibleMeals.length > 0 ? (
           <View style={styles.mealList}>
             {visibleMeals.map((meal) => (
-              <MealRow key={meal.id} meal={meal} kcalLabel={t('result.kcal')} />
+              <MealRow key={meal.id} meal={meal} />
             ))}
           </View>
         ) : (
@@ -130,7 +135,7 @@ export default function HistoryScreen() {
   );
 }
 
-function MealRow({ meal, kcalLabel }: { meal: SavedMeal; kcalLabel: string }) {
+function MealRow({ meal }: { meal: SavedMeal }) {
   const initial = meal.name.trim().charAt(0).toUpperCase() || '?';
   const time = formatTime(meal.savedAt);
 
@@ -148,7 +153,7 @@ function MealRow({ meal, kcalLabel }: { meal: SavedMeal; kcalLabel: string }) {
         </Text>
       </View>
       <Text style={styles.mealKcal} numberOfLines={1}>
-        {Math.round(meal.caloriesKcal)} {kcalLabel}
+        {Math.round(meal.caloriesKcal)}
       </Text>
     </View>
   );
