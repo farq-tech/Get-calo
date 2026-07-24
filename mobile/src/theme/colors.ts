@@ -5,7 +5,7 @@
  */
 
 export const colors = {
-  // Atmospheric backgrounds — dark
+  // Atmospheric backgrounds — dark (default)
   bg: '#0A0E0D',
   bgElevated: '#121816',
   bgCard: '#161E1B',
@@ -31,7 +31,10 @@ export const colors = {
   textMuted: '#6B7C75',
   textInverse: '#0A0E0D',
 
-  // Light mode — analysis / scan progress surfaces
+  // Light mode — analysis / result surfaces only
+  surface: '#FFFFFF',
+  background: '#FAFCFB',
+  surfaceMuted: '#EDF3F0',
   lightBg: '#FAFCFB',
   lightSurface: '#FFFFFF',
   lightSurfaceMuted: '#EDF3F0',
@@ -55,7 +58,12 @@ export const colors = {
   warning: '#FBBF24',
   success: '#34D399',
 
-  // Confidence
+  // Confidence bands
+  confidence: {
+    high: '#34D399',
+    mid: '#FBBF24',
+    low: '#F87171',
+  },
   confidenceHigh: '#34D399',
   confidenceMid: '#FBBF24',
   confidenceLow: '#F87171',

@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "SnapCal",
+    "name": "Calora",
     "slug": "get-calo",
     "version": "1.0.0",
     "orientation": "portrait",
-    "scheme": "snapcal",
+    "scheme": "calora",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "icon": "./assets/icon.png",
@@ -17,8 +17,8 @@
       "supportsTablet": false,
       "bundleIdentifier": "app.calora.scanner",
       "infoPlist": {
-        "NSCameraUsageDescription": "SnapCal needs camera access to scan meals and estimate calories.",
-        "NSPhotoLibraryUsageDescription": "SnapCal may save corrected meal photos for model improvement.",
+        "NSCameraUsageDescription": "Calora needs camera access to scan meals and estimate calories.",
+        "NSPhotoLibraryUsageDescription": "Calora may save corrected meal photos for model improvement.",
         "CFBundleAllowMixedLocalizations": true,
         "CFBundleLocalizations": [
           "en",
@@ -45,7 +45,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow SnapCal to access your camera to scan meals."
+          "cameraPermission": "Allow Calora to access your camera to scan meals."
         }
       ],
       "expo-sqlite",

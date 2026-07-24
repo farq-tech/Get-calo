@@ -118,7 +118,7 @@ export default function SettingsScreen() {
         </View>
 
         <View style={styles.footer}>
-          <Text style={styles.footerMeta}>SnapCal 1.0 · farq-tech/Get-calo</Text>
+          <Text style={styles.footerMeta}>Calora 1.0 · farq-tech/Get-calo</Text>
           <Text style={styles.footerCredit}>{t('creditBy')} Sattam Alkhalaf</Text>
         </View>
       </ScrollView>

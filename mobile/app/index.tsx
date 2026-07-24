@@ -58,8 +58,8 @@ export default function Index() {
   }, [router]);
 
   const ringStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(ring.value, [0, 0.72, 1], [0.4, 0.18, 0]),
-    transform: [{ scale: interpolate(ring.value, [0, 1], [0.92, 1.18]) }],
+    opacity: interpolate(ring.value, [0, 1], [0.8, 0]),
+    transform: [{ scale: interpolate(ring.value, [0, 1], [0.6, 1.5]) }],
   }));
 
   return (
@@ -82,7 +82,6 @@ export default function Index() {
           <Text style={styles.brand}>{t('brand')}</Text>
           <Text style={styles.tagline}>{t('tagline')}</Text>
         </View>
-        <Text style={styles.credit}>{t('credit')}</Text>
         <View style={styles.dots}>
           <LoadingDot delay={0} />
           <LoadingDot delay={200} />
@@ -154,15 +153,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontSize: 15,
     color: colors.textSecondary,
-  },
-  credit: {
-    position: 'absolute',
-    bottom: 92,
-    left: 24,
-    right: 24,
-    textAlign: 'center',
-    fontSize: 12,
-    color: colors.textMuted,
   },
   dots: {
     position: 'absolute',

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import type { ImageSourcePropType } from 'react-native';
 import {
   Image,
+  I18nManager,
   Pressable,
   StyleSheet,
   Text,
@@ -11,17 +12,18 @@ import {
 import Animated, {
   Easing,
   FadeIn,
-  FadeInUp,
   interpolate,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
+import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { colors } from '@/theme/colors';
 import { motion } from '@/theme/tokens';
 import { typography } from '@/theme/typography';
@@ -52,48 +54,131 @@ type Props = {
   imageSource?: ImageSourcePropType;
 };
 
-const PARTICLE_FADE = [1, 0.55, 0.28] as const;
+const STEP_FADE = [1, 0.55, 0.28] as const;
+const CUBIC = Easing.bezier(0.2, 0, 0, 1);
 
 /**
- * Cinematic analyzing screen — matches SnapCal App.html prototype.
- * Signature: types "Sattam" → credit → Sattam engine + live steps.
+ * Sattam AI cinematic analyzing — used only for real AI recognition flows.
+ * Exact timing from Calora design spec §3.4.
  */
 export function ScanProgressOverlay({ imageUri, step, onBack, imageSource }: Props) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
+  const reducedMotion = useReducedMotion();
 
-  const [phase, setPhase] = useState<Phase>('type');
-  const [typed, setTyped] = useState(0);
-  const [cursorOn, setCursorOn] = useState(true);
+  const [phase, setPhase] = useState<Phase>(reducedMotion ? 'engine' : 'type');
+  const [typed, setTyped] = useState(reducedMotion ? 6 : 0);
+  const [cursorOn, setCursorOn] = useState(!reducedMotion);
+  const [showSteps, setShowSteps] = useState(reducedMotion);
 
   const sweep = useSharedValue(0);
   const ken = useSharedValue(0);
   const glow = useSharedValue(0);
   const particle = useSharedValue(0);
+  const wordOp = useSharedValue(1);
+  const wordBlur = useSharedValue(0);
+  const wordScale = useSharedValue(1);
+  const wordY = useSharedValue(0);
+  const engineOp = useSharedValue(reducedMotion ? 1 : 0);
+  const engineBlur = useSharedValue(reducedMotion ? 0 : 8);
+  const engineY = useSharedValue(reducedMotion ? 0 : 12);
+  const creditOp = useSharedValue(reducedMotion ? 1 : 0);
+  const creditY = useSharedValue(reducedMotion ? 0 : 8);
+  const cursorOp = useSharedValue(1);
 
   const word = 'Sattam';
   const stepIndex = SCAN_STEP_ORDER.indexOf(step);
 
   useEffect(() => {
+    if (reducedMotion) {
+      setPhase('engine');
+      setTyped(word.length);
+      setCursorOn(false);
+      setShowSteps(true);
+      wordOp.value = 0;
+      engineOp.value = 1;
+      engineBlur.value = 0;
+      engineY.value = 0;
+      creditOp.value = 1;
+      return;
+    }
+
     setPhase('type');
     setTyped(0);
     setCursorOn(true);
+    setShowSteps(false);
+    wordOp.value = 1;
+    wordBlur.value = 0;
+    wordScale.value = 1;
+    wordY.value = 0;
+    engineOp.value = 0;
+    engineBlur.value = 8;
+    engineY.value = 12;
+    creditOp.value = 0;
+    creditY.value = 8;
+    cursorOp.value = 1;
+
     const timers: ReturnType<typeof setTimeout>[] = [];
-    const typeMs = 140;
+    const typeMs = motion.sattamCharMs;
+    const startType = motion.sattamStartType;
+
     for (let i = 1; i <= word.length; i++) {
-      timers.push(setTimeout(() => setTyped(i), 320 + i * typeMs));
+      timers.push(setTimeout(() => setTyped(i), startType + i * typeMs));
     }
-    const done = 320 + word.length * typeMs;
-    timers.push(setTimeout(() => setCursorOn(false), done + 150));
-    timers.push(setTimeout(() => setPhase('credit'), done + 340));
-    timers.push(setTimeout(() => setPhase('engine'), done + 1750));
+
+    const typedDone = startType + word.length * typeMs;
+    timers.push(
+      setTimeout(() => {
+        cursorOp.value = withTiming(0, { duration: 500, easing: Easing.out(Easing.ease) });
+        setCursorOn(false);
+      }, typedDone + motion.sattamCursorHold),
+    );
+
+    timers.push(
+      setTimeout(() => {
+        setPhase('credit');
+        creditOp.value = withTiming(1, { duration: 600, easing: CUBIC });
+        creditY.value = withTiming(0, { duration: 600, easing: CUBIC });
+      }, typedDone + motion.sattamCreditDelay),
+    );
+
+    timers.push(
+      setTimeout(() => {
+        setPhase('engine');
+        wordOp.value = withTiming(0, { duration: motion.morph, easing: CUBIC });
+        wordBlur.value = withTiming(10, { duration: motion.morph, easing: CUBIC });
+        wordScale.value = withTiming(0.94, { duration: motion.morph, easing: CUBIC });
+        wordY.value = withTiming(-10, { duration: motion.morph, easing: CUBIC });
+        engineOp.value = withTiming(1, { duration: motion.morph, easing: CUBIC });
+        engineBlur.value = withTiming(0, { duration: motion.morph, easing: CUBIC });
+        engineY.value = withTiming(0, { duration: motion.morph, easing: CUBIC });
+      }, typedDone + motion.sattamMorphDelay),
+    );
+
+    timers.push(
+      setTimeout(() => setShowSteps(true), typedDone + motion.sattamStepsDelay),
+    );
+
     return () => timers.forEach(clearTimeout);
-  }, []);
+  }, [
+    creditOp,
+    creditY,
+    cursorOp,
+    engineBlur,
+    engineOp,
+    engineY,
+    reducedMotion,
+    wordBlur,
+    wordOp,
+    wordScale,
+    wordY,
+  ]);
 
   useEffect(() => {
+    if (reducedMotion) return;
     sweep.value = withRepeat(
-      withTiming(1, { duration: 3400, easing: Easing.bezier(0.45, 0, 0.55, 1) }),
+      withTiming(1, { duration: motion.scanSweep, easing: Easing.bezier(0.45, 0, 0.55, 1) }),
       -1,
       false,
     );
@@ -112,7 +197,7 @@ export function ScanProgressOverlay({ imageUri, step, onBack, imageSource }: Pro
       -1,
       true,
     );
-  }, [glow, ken, particle, sweep]);
+  }, [glow, ken, particle, reducedMotion, sweep]);
 
   const sweepStyle = useAnimatedStyle(() => ({
     top: interpolate(sweep.value, [0, 1], [-40, height * 0.75]),
@@ -120,12 +205,12 @@ export function ScanProgressOverlay({ imageUri, step, onBack, imageSource }: Pro
   }));
 
   const kenStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: interpolate(ken.value, [0, 1], [1.05, 1.18]) }],
+    transform: [{ scale: interpolate(ken.value, [0, 1], [1.02, 1.045]) }],
   }));
 
   const glowStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(glow.value, [0, 1], [0.55, 1]),
-    transform: [{ scale: interpolate(glow.value, [0, 1], [0.94, 1.06]) }],
+    opacity: interpolate(glow.value, [0, 1], [0.22, 0.45]),
+    transform: [{ scale: interpolate(glow.value, [0, 1], [0.96, 1.04]) }],
   }));
 
   const particleA = useAnimatedStyle(() => ({
@@ -145,6 +230,25 @@ export function ScanProgressOverlay({ imageUri, step, onBack, imageSource }: Pro
     transform: [{ translateY: interpolate(particle.value, [0, 1], [-4, 12]) }],
   }));
 
+  const wordStyle = useAnimatedStyle(() => ({
+    opacity: wordOp.value,
+    transform: [{ scale: wordScale.value }, { translateY: wordY.value }],
+  }));
+
+  const engineStyle = useAnimatedStyle(() => ({
+    opacity: engineOp.value,
+    transform: [{ translateY: engineY.value }],
+  }));
+
+  const creditStyle = useAnimatedStyle(() => ({
+    opacity: creditOp.value,
+    transform: [{ translateY: creditY.value }],
+  }));
+
+  const cursorStyle = useAnimatedStyle(() => ({
+    opacity: cursorOp.value,
+  }));
+
   const source =
     imageSource ??
     (imageUri.startsWith('web-demo:') || imageUri.startsWith('demo:')
@@ -152,6 +256,7 @@ export function ScanProgressOverlay({ imageUri, step, onBack, imageSource }: Pro
       : { uri: imageUri });
 
   const visibleSteps = useMemo(() => {
+    if (!showSteps) return [];
     const end = Math.max(1, stepIndex + 1);
     const start = Math.max(0, end - 3);
     const slice = SCAN_STEP_ORDER.slice(start, end);
@@ -163,18 +268,16 @@ export function ScanProgressOverlay({ imageUri, step, onBack, imageSource }: Pro
         done: absolute < stepIndex,
         active: absolute === stepIndex,
         label: t(`camera.analyzeMsgs.${id}`),
-        opacity: PARTICLE_FADE[Math.min(fromEnd, PARTICLE_FADE.length - 1)] ?? 1,
+        opacity: STEP_FADE[Math.min(fromEnd, STEP_FADE.length - 1)] ?? 1,
       };
     });
-  }, [stepIndex, t]);
+  }, [showSteps, stepIndex, t]);
 
-  const showCredit = phase === 'credit' || phase === 'engine';
-  const showEngine = phase === 'engine';
-  const showWord = phase === 'type' || phase === 'credit';
+  const backFlip = I18nManager.isRTL ? [{ scaleX: -1 }] : undefined;
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
-      <Animated.View style={[styles.bgWrap, kenStyle]}>
+      <Animated.View style={[styles.bgWrap, reducedMotion ? undefined : kenStyle]}>
         {source ? (
           <Image source={source} style={styles.bgImage} blurRadius={18} />
         ) : (
@@ -183,12 +286,16 @@ export function ScanProgressOverlay({ imageUri, step, onBack, imageSource }: Pro
         <View style={styles.bgTint} />
       </Animated.View>
 
-      <Animated.View style={[styles.glow, glowStyle]} pointerEvents="none" />
-      <Animated.View style={[styles.sweep, sweepStyle]} pointerEvents="none" />
-      <Animated.View style={[styles.particle, styles.particleA, particleA]} pointerEvents="none" />
-      <Animated.View style={[styles.particle, styles.particleB, particleB]} pointerEvents="none" />
-      <Animated.View style={[styles.particle, styles.particleC, particleC]} pointerEvents="none" />
-      <Animated.View style={[styles.particle, styles.particleD, particleD]} pointerEvents="none" />
+      {!reducedMotion ? (
+        <>
+          <Animated.View style={[styles.glow, glowStyle]} pointerEvents="none" />
+          <Animated.View style={[styles.sweep, sweepStyle]} pointerEvents="none" />
+          <Animated.View style={[styles.particle, styles.particleA, particleA]} pointerEvents="none" />
+          <Animated.View style={[styles.particle, styles.particleB, particleB]} pointerEvents="none" />
+          <Animated.View style={[styles.particle, styles.particleC, particleC]} pointerEvents="none" />
+          <Animated.View style={[styles.particle, styles.particleD, particleD]} pointerEvents="none" />
+        </>
+      ) : null}
       <View style={styles.vignette} pointerEvents="none" />
 
       {onBack ? (
@@ -199,27 +306,53 @@ export function ScanProgressOverlay({ imageUri, step, onBack, imageSource }: Pro
           hitSlop={12}
           style={[styles.backBtn, { top: insets.top + 8 }]}
         >
-          <Ionicons name="chevron-back" size={22} color={colors.text} />
+          <Ionicons
+            name="chevron-back"
+            size={22}
+            color={colors.text}
+            style={backFlip ? { transform: backFlip } : undefined}
+          />
         </Pressable>
       ) : null}
 
       <View style={styles.center}>
-        <Text style={[styles.credit, { opacity: showCredit ? 1 : 0 }]}>
-          {t('creditBy')}
-        </Text>
+        <Animated.Text style={[styles.credit, creditStyle]}>{t('creditBy')}</Animated.Text>
 
         <View style={styles.signatureBlock}>
-          {showWord ? (
-            <View style={styles.wordRow}>
-              <Text style={styles.typedWord}>{word.slice(0, typed)}</Text>
-              {cursorOn ? <View style={styles.cursor} /> : null}
-            </View>
+          {(phase === 'type' || phase === 'credit') && !reducedMotion ? (
+            <Animated.View style={[styles.wordRow, wordStyle]}>
+              <Text style={styles.typedWord}>
+                {word.slice(0, typed)}
+              </Text>
+              {cursorOn ? (
+                <Animated.View style={cursorStyle}>
+                  <LinearGradient
+                    colors={['#5EEAD4', '#10B981']}
+                    style={styles.cursor}
+                  />
+                </Animated.View>
+              ) : null}
+            </Animated.View>
           ) : null}
 
-          {showEngine ? (
-            <Animated.View entering={FadeIn.duration(motion.emphasized)} style={styles.engine}>
-              <Text style={styles.engineName}>Sattam</Text>
+          {phase === 'engine' || reducedMotion ? (
+            <Animated.View style={[styles.engine, engineStyle]}>
+              <Text style={styles.engineName}>
+                {t('engineName')}
+              </Text>
               <Text style={styles.engineSub}>{t('engineSub')}</Text>
+            </Animated.View>
+          ) : null}
+
+          {/* Keep morph layers stacked during transition */}
+          {phase === 'engine' && !reducedMotion ? (
+            <Animated.View
+              pointerEvents="none"
+              style={[styles.wordRow, styles.wordAbsolute, wordStyle]}
+            >
+              <Text style={styles.typedWord}>
+                {word}
+              </Text>
             </Animated.View>
           ) : null}
         </View>
@@ -228,7 +361,7 @@ export function ScanProgressOverlay({ imageUri, step, onBack, imageSource }: Pro
           {visibleSteps.map((row) => (
             <Animated.View
               key={row.id}
-              entering={FadeInUp.duration(420)}
+              entering={reducedMotion ? undefined : FadeIn.duration(460)}
               style={[styles.stepRow, { opacity: row.opacity }]}
             >
               <View style={[styles.stepIcon, row.done && styles.stepIconDone]}>
@@ -284,13 +417,13 @@ const styles = StyleSheet.create({
   },
   glow: {
     position: 'absolute',
-    top: '28%',
+    top: '30%',
     left: '50%',
     marginLeft: -130,
     width: 260,
     height: 210,
     borderRadius: 130,
-    backgroundColor: 'rgba(45,212,168,0.14)',
+    backgroundColor: 'rgba(45,212,168,0.16)',
   },
   sweep: {
     position: 'absolute',
@@ -351,7 +484,7 @@ const styles = StyleSheet.create({
   },
   vignette: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(7,10,9,0.35)',
+    backgroundColor: 'rgba(7,10,9,0.55)',
   },
   backBtn: {
     position: 'absolute',
@@ -380,6 +513,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     color: colors.textSecondary,
     marginBottom: 10,
+    textAlign: 'center',
   },
   signatureBlock: {
     minHeight: 72,
@@ -391,6 +525,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  wordAbsolute: {
+    position: 'absolute',
+  },
   typedWord: {
     fontFamily: typography.brand.fontFamily,
     fontSize: 46,
@@ -400,13 +537,13 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(45,212,168,0.3)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 28,
+    writingDirection: 'ltr',
   },
   cursor: {
     width: 3,
     height: 42,
     borderRadius: 2,
-    marginLeft: 7,
-    backgroundColor: colors.accent,
+    marginStart: 7,
   },
   engine: {
     alignItems: 'center',
@@ -418,11 +555,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: 0.2,
     color: colors.text,
+    writingDirection: 'ltr',
   },
   engineSub: {
     fontSize: 13,
     fontWeight: '500',
     color: colors.textSecondary,
+    textAlign: 'center',
   },
   steps: {
     marginTop: 30,
