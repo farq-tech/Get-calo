@@ -123,8 +123,12 @@ def main() -> int:
         for i, url in enumerate(urls):
             ext = ".jpg"
             dest = class_dir / f"{i}{ext}"
-            if download(url, dest) and validate_image(dest):
-                local_paths.append(dest)
+            if download(url, dest):
+                result = validate_image(dest)
+                if result.ok:
+                    local_paths.append(dest)
+                else:
+                    dest.unlink(missing_ok=True)
             time.sleep(0.05)
 
         if len(local_paths) < 2:
@@ -155,7 +159,6 @@ def main() -> int:
                 "serving_size_g": row.get("serving_size_g") or 100,
                 "category": row.get("category") or "grocery",
                 "image_count": len(local_paths),
-                "source": row.get("source"),
             }
         )
         nutrition_out.append(
