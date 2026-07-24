@@ -15,6 +15,7 @@ import Animated, { FadeIn } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 
 import { CalorieCard } from '@/components/CalorieCard';
+import { PlateBreakdown } from '@/components/PlateBreakdown';
 import { useMealStore } from '@/hooks/useMealStore';
 import { useScanStore, useSettingsStore } from '@/hooks/useSettingsStore';
 import { colors } from '@/theme/colors';
@@ -34,11 +35,20 @@ export default function ResultScreen() {
   const [showToast, setShowToast] = useState(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const plateItems = result?.items?.length ? result.items : result?.nutrition ? [result.nutrition] : [];
+  const isPlate = plateItems.length > 1;
+
   const foodName = useMemo(() => {
     if (!result?.nutrition) return t('result.unknownFood');
+    if (isPlate) {
+      if (locale === 'ar') {
+        return result.nutrition.nameAr || t('result.plateTitle', { count: plateItems.length });
+      }
+      return result.nutrition.nameEn || t('result.plateTitle', { count: plateItems.length });
+    }
     if (locale === 'ar' && result.nutrition.nameAr) return result.nutrition.nameAr;
     return result.nutrition.nameEn;
-  }, [locale, result, t]);
+  }, [isPlate, locale, plateItems.length, result, t]);
 
   const factor = SERVING_FACTORS[servingIdx] ?? 1;
   const scaledNutrition = useMemo(() => {
@@ -56,8 +66,11 @@ export default function ResultScreen() {
 
   const servingLabel = useMemo(() => {
     if (!scaledNutrition) return '—';
+    if (isPlate) {
+      return `${t('result.est')} ${scaledNutrition.servingSizeG}${t('result.grams')} · ${t('result.fullPlate')}`;
+    }
     return `${t('result.est')} ${scaledNutrition.servingSizeG}${t('result.grams')} · ${t('result.perServing')}`;
-  }, [scaledNutrition, t]);
+  }, [isPlate, scaledNutrition, t]);
 
   const servingOptions = useMemo(() => {
     const base = result?.nutrition?.servingSizeG ?? 240;
@@ -73,9 +86,6 @@ export default function ResultScreen() {
 
   const lowConfidence = Boolean(result?.lowConfidence || (result && result.confidence < 0.6));
   const noFood = Boolean(result && !result.nutrition);
-  const multiItem = Boolean(
-    result && !result.nutrition && result.detections && result.detections.length > 1,
-  );
 
   useEffect(() => {
     return () => {
@@ -85,8 +95,13 @@ export default function ResultScreen() {
 
   const onSaveMeal = () => {
     if (!result || !scaledNutrition) return;
+    const saveName = isPlate
+      ? `${foodName}: ${plateItems
+          .map((item) => (locale === 'ar' && item.nameAr ? item.nameAr : item.nameEn))
+          .join(', ')}`
+      : foodName;
     addMeal({
-      name: foodName,
+      name: saveName,
       caloriesKcal: scaledNutrition.caloriesKcal,
       proteinG: scaledNutrition.proteinG,
       carbsG: scaledNutrition.carbsG,
@@ -115,16 +130,14 @@ export default function ResultScreen() {
     );
   }
 
-  if (noFood || multiItem) {
-    const title = noFood ? t('result.noFoodTitle') : t('result.multiItemTitle');
-    const action = noFood ? t('result.noFoodAction') : t('result.multiItemAction');
+  if (noFood) {
     return (
       <View style={styles.fill}>
         <View style={[styles.empty, { paddingTop: insets.top + 80 }]}>
-          <Text style={styles.emptyText}>{title}</Text>
+          <Text style={styles.emptyText}>{t('result.noFoodTitle')}</Text>
           <Pressable style={styles.primaryHit} onPress={() => router.replace('/camera')}>
             <LinearGradient colors={[...colors.gradientPrimary]} style={styles.primaryBtn}>
-              <Text style={styles.primaryBtnText}>{action}</Text>
+              <Text style={styles.primaryBtnText}>{t('result.noFoodAction')}</Text>
             </LinearGradient>
           </Pressable>
         </View>
@@ -178,6 +191,15 @@ export default function ResultScreen() {
             gramsLabel={t('result.grams')}
           />
         </Animated.View>
+
+        <PlateBreakdown
+          items={plateItems}
+          locale={locale}
+          factor={factor}
+          title={t('result.plateBreakdown')}
+          kcalLabel={t('result.kcal')}
+          gramsLabel={t('result.grams')}
+        />
 
         <View style={styles.servingBox}>
           <Text style={styles.servingTitle}>{t('result.servingSize')}</Text>

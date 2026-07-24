@@ -35,6 +35,8 @@ export interface ScanResult {
   detections: Detection[];
   topDetection: Detection | null;
   nutrition: NutritionItem | null;
+  /** Per-item breakdown for mixed plates (AI multi-item). */
+  items?: NutritionItem[];
   confidence: number;
   lowConfidence: boolean;
   modelVersion: string;

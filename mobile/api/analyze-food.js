@@ -1,39 +1,45 @@
 /**
  * Calora food vision endpoint (Vercel Serverless, CommonJS).
  * POST { imageBase64, mimeType?, locale? } → food + nutrition JSON
+ * Supports multi-item plates: returns `items[]` + plate totals.
  */
 
 const SYSTEM_PROMPT = `You are Calora, an expert nutrition assistant for Gulf / Saudi everyday food, drinks, snacks, and grocery products.
 
-Identify the main edible item in the photo. Prefer specific product names when clear (Pepsi can, laban bottle, basmati rice pack).
+Analyze the photo and identify EVERY distinct edible item visible (e.g. rice, grilled chicken, salad, sauce, drink). For a single packaged product, return one item.
 
 Critical rules for packaging:
-- Cans, bottles, cartons, cups, and pouches that look like beverages or food are edible products. Estimate nutrition for a typical serving of that drink/food.
-- Do NOT classify beverage packaging as speakers, radios, toys, or novelty gadgets unless the object clearly has electronics (buttons, screens, antenna, ports) and no drink branding/nutrition label.
-- If it looks like a soft drink can (Coca-Cola, Pepsi, etc.), treat it as that drink.
+- Cans, bottles, cartons, cups, and pouches that look like beverages or food are edible products.
+- Do NOT classify beverage packaging as speakers, radios, toys, or novelty gadgets unless the object clearly has electronics and no drink branding.
+- Soft drink cans (Coca-Cola, Pepsi, etc.) are that drink.
 
 Return ONLY valid JSON (no markdown):
 {
-  "name_en": string,
-  "name_ar": string,
-  "confidence": number,
-  "calories_kcal": number,
-  "protein_g": number,
-  "carbs_g": number,
-  "fat_g": number,
-  "serving_size_g": number,
-  "serving_label_en": string,
-  "serving_label_ar": string,
-  "category": string,
+  "items": [
+    {
+      "name_en": string,
+      "name_ar": string,
+      "confidence": number,
+      "calories_kcal": number,
+      "protein_g": number,
+      "carbs_g": number,
+      "fat_g": number,
+      "serving_size_g": number,
+      "serving_label_en": string,
+      "serving_label_ar": string,
+      "category": string
+    }
+  ],
   "notes_en": string
 }
 
 Rules:
-- If truly not food/drink, return low confidence and name_en "Unknown item".
-- Calories/macros must be realistic for serving_size_g.
+- Include 1–6 items. Split mixed plates into separate foods (not one vague "meal").
+- If truly not food/drink, return items: [{ name_en: "Unknown item", confidence: 0.2, calories_kcal: 0, ... }].
+- Calories/macros must be realistic for each serving_size_g.
 - Arabic (Saudi) for name_ar and serving_label_ar.
 - confidence >= 0.75 when clearly identifiable.
-- Keep notes_en short. Do not mention models, vendors, or how the estimate was produced.`;
+- Keep notes_en short. Do not mention models or vendors.`;
 
 function send(res, status, body) {
   res.statusCode = status;
@@ -78,6 +84,87 @@ function readBody(req) {
   });
 }
 
+function normalizeItem(raw) {
+  return {
+    name_en: String(raw.name_en || 'Unknown item'),
+    name_ar: String(raw.name_ar || ''),
+    confidence: Math.max(0, Math.min(1, Number(raw.confidence) || 0.5)),
+    calories_kcal: Math.max(0, Number(raw.calories_kcal) || 0),
+    protein_g: Math.max(0, Number(raw.protein_g) || 0),
+    carbs_g: Math.max(0, Number(raw.carbs_g) || 0),
+    fat_g: Math.max(0, Number(raw.fat_g) || 0),
+    serving_size_g: Math.max(1, Number(raw.serving_size_g) || 100),
+    serving_label_en: String(raw.serving_label_en || 'serving'),
+    serving_label_ar: String(raw.serving_label_ar || '\u062D\u0635\u0629'),
+    category: String(raw.category || 'food'),
+  };
+}
+
+function normalizeResult(parsed, model) {
+  let items = Array.isArray(parsed.items) ? parsed.items.map(normalizeItem) : [];
+
+  // Backward-compatible single-object responses
+  if (items.length === 0 && (parsed.name_en || parsed.calories_kcal != null)) {
+    items = [normalizeItem(parsed)];
+  }
+  if (items.length === 0) {
+    items = [
+      normalizeItem({
+        name_en: 'Unknown item',
+        name_ar: '',
+        confidence: 0.2,
+        calories_kcal: 0,
+        protein_g: 0,
+        carbs_g: 0,
+        fat_g: 0,
+        serving_size_g: 100,
+      }),
+    ];
+  }
+
+  // Cap to 6 items
+  items = items.slice(0, 6);
+
+  const totals = items.reduce(
+    (acc, item) => {
+      acc.calories_kcal += item.calories_kcal;
+      acc.protein_g += item.protein_g;
+      acc.carbs_g += item.carbs_g;
+      acc.fat_g += item.fat_g;
+      acc.serving_size_g += item.serving_size_g;
+      return acc;
+    },
+    { calories_kcal: 0, protein_g: 0, carbs_g: 0, fat_g: 0, serving_size_g: 0 },
+  );
+
+  const primary = items[0];
+  const isPlate = items.length > 1;
+  const confidence =
+    items.reduce((sum, item) => sum + item.confidence, 0) / Math.max(items.length, 1);
+
+  return {
+    name_en: isPlate
+      ? `Plate · ${items.length} items`
+      : primary.name_en,
+    name_ar: isPlate
+      ? `\u0635\u062D\u0646 \u00B7 ${items.length} \u0623\u0635\u0646\u0627\u0641`
+      : primary.name_ar,
+    confidence: Math.max(0, Math.min(1, confidence)),
+    calories_kcal: Math.round(totals.calories_kcal),
+    protein_g: Math.round(totals.protein_g),
+    carbs_g: Math.round(totals.carbs_g),
+    fat_g: Math.round(totals.fat_g),
+    serving_size_g: Math.max(1, Math.round(totals.serving_size_g)),
+    serving_label_en: isPlate ? 'full plate' : primary.serving_label_en,
+    serving_label_ar: isPlate ? '\u0635\u062D\u0646 \u0643\u0627\u0645\u0644' : primary.serving_label_ar,
+    category: isPlate ? 'plate' : primary.category,
+    notes_en: String(parsed.notes_en || ''),
+    items,
+    model,
+    provider: 'gemini',
+  };
+}
+
 async function callGemini(imageBase64, mimeType, locale) {
   const key = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   if (!key) {
@@ -106,7 +193,7 @@ async function callGemini(imageBase64, mimeType, locale) {
     ],
     generationConfig: {
       temperature: 0.2,
-      maxOutputTokens: 800,
+      maxOutputTokens: 1600,
       responseMimeType: 'application/json',
       thinkingConfig: { thinkingBudget: 0 },
     },
@@ -141,22 +228,7 @@ async function callGemini(imageBase64, mimeType, locale) {
   }
 
   const parsed = JSON.parse(stripCodeFence(text));
-  return {
-    name_en: String(parsed.name_en || 'Unknown item'),
-    name_ar: String(parsed.name_ar || ''),
-    confidence: Math.max(0, Math.min(1, Number(parsed.confidence) || 0.5)),
-    calories_kcal: Math.max(0, Number(parsed.calories_kcal) || 0),
-    protein_g: Math.max(0, Number(parsed.protein_g) || 0),
-    carbs_g: Math.max(0, Number(parsed.carbs_g) || 0),
-    fat_g: Math.max(0, Number(parsed.fat_g) || 0),
-    serving_size_g: Math.max(1, Number(parsed.serving_size_g) || 100),
-    serving_label_en: String(parsed.serving_label_en || 'serving'),
-    serving_label_ar: String(parsed.serving_label_ar || 'حصة'),
-    category: String(parsed.category || 'food'),
-    notes_en: String(parsed.notes_en || ''),
-    model,
-    provider: 'gemini',
-  };
+  return normalizeResult(parsed, model);
 }
 
 module.exports = async function handler(req, res) {

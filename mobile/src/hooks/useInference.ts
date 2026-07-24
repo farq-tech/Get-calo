@@ -127,18 +127,26 @@ export function useInference(): UseInferenceReturn {
               /unknown/i.test(ai.nameEn) ||
               (ai.confidence < 0.35 && ai.nutrition.caloriesKcal <= 0);
 
-            const detection: Detection = {
-              classId: -1,
-              confidence: ai.confidence,
-              bbox: { x: 0.1, y: 0.1, width: 0.8, height: 0.8 },
-              label: ai.nameEn,
-            };
+            const detections: Detection[] = (ai.items.length > 0 ? ai.items : [ai.nutrition]).map(
+              (item, index) => ({
+                classId: item.classId,
+                confidence: ai.confidence,
+                bbox: {
+                  x: 0.08 + index * 0.04,
+                  y: 0.08 + index * 0.04,
+                  width: 0.7,
+                  height: 0.7,
+                },
+                label: item.nameEn,
+              }),
+            );
 
             const result: ScanResult = {
               imageUri,
-              detections: [detection],
-              topDetection: detection,
+              detections,
+              topDetection: detections[0] ?? null,
               nutrition: isUnknown ? null : ai.nutrition,
+              items: isUnknown ? [] : ai.items,
               confidence: ai.confidence,
               lowConfidence: isUnknown || isLowConfidence(ai.confidence, threshold),
               modelVersion: `${AI_MODEL_VERSION}:${ai.model}`,
