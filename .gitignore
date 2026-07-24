@@ -69,3 +69,6 @@ tmp/
 .turbo/
 *.sqlite
 *.db
+.vercel
+.env*
+mobile/android/
