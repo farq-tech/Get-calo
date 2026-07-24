@@ -66,7 +66,7 @@ export const typography = {
   bodySm: {
     fontFamily: fontFamilies.body,
     fontSize: 14,
-    letterSpacing: 0.1,
+    letterSpacing: 0,
     lineHeight: 20,
   },
   caption: {

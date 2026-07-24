@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  I18nManager,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -10,7 +11,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 
 import { CalorieCard } from '@/components/CalorieCard';
@@ -70,6 +71,12 @@ export default function ResultScreen() {
     return t('result.confidenceLow');
   }, [result, t]);
 
+  const lowConfidence = Boolean(result?.lowConfidence || (result && result.confidence < 0.6));
+  const noFood = Boolean(
+    result && !result.nutrition && (!result.detections || result.detections.length === 0),
+  );
+  const multiItem = Boolean(result && result.detections && result.detections.length > 1);
+
   useEffect(() => {
     return () => {
       if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -108,11 +115,33 @@ export default function ResultScreen() {
     );
   }
 
+  if (noFood || multiItem) {
+    const title = noFood ? t('result.noFoodTitle') : t('result.multiItemTitle');
+    const action = noFood ? t('result.noFoodAction') : t('result.multiItemAction');
+    return (
+      <View style={styles.fill}>
+        <View style={[styles.empty, { paddingTop: insets.top + 80 }]}>
+          <Text style={styles.emptyText}>{title}</Text>
+          <Pressable style={styles.primaryHit} onPress={() => router.replace('/camera')}>
+            <LinearGradient colors={[...colors.gradientPrimary]} style={styles.primaryBtn}>
+              <Text style={styles.primaryBtnText}>{action}</Text>
+            </LinearGradient>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.fill}>
       <View style={[styles.topBar, { paddingTop: insets.top + 17 }]}>
         <Pressable style={styles.iconBtn} onPress={() => router.replace('/camera')}>
-          <Ionicons name="chevron-back" size={18} color={colors.text} />
+          <Ionicons
+            name="chevron-back"
+            size={18}
+            color={colors.text}
+            style={I18nManager.isRTL ? { transform: [{ scaleX: -1 }] } : undefined}
+          />
         </Pressable>
         <Text style={styles.topTitle}>{t('result.title')}</Text>
         <View style={styles.iconBtnSpacer} />
@@ -125,7 +154,14 @@ export default function ResultScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        <Animated.View entering={FadeInDown.duration(motion.emphasized).springify()}>
+        <Animated.View entering={FadeIn.duration(motion.emphasized)}>
+          {lowConfidence ? (
+            <Pressable style={styles.lowBanner} onPress={() => router.push('/correct')}>
+              <Text style={styles.lowBannerText}>{t('result.lowConfidenceTitle')}</Text>
+              <Text style={styles.lowBannerAction}>{t('result.correct')}</Text>
+            </Pressable>
+          ) : null}
+
           <CalorieCard
             nutrition={scaledNutrition}
             foodName={foodName}
@@ -175,10 +211,7 @@ export default function ResultScreen() {
       <LinearGradient
         colors={['rgba(10,14,13,0)', colors.bg, colors.bg]}
         locations={[0, 0.4, 1]}
-        style={[
-          styles.footer,
-          { paddingBottom: Math.max(insets.bottom, 16) + 12 },
-        ]}
+        style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) + 12 }]}
       >
         <Pressable style={styles.ghostBtn} onPress={() => router.replace('/camera')}>
           <Text style={styles.ghostBtnText}>{t('result.scanAgain')}</Text>
@@ -246,6 +279,30 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.textSecondary,
     marginBottom: spacing.lg,
+    textAlign: 'center',
+  },
+  lowBanner: {
+    marginBottom: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: 'rgba(248,113,113,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(248,113,113,0.28)',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  lowBannerText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '500',
+    color: colors.danger,
+  },
+  lowBannerAction: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.accent,
   },
   servingBox: {
     marginTop: 14,
@@ -274,6 +331,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     alignItems: 'center',
+    minHeight: 44,
+    justifyContent: 'center',
   },
   servingChipActive: {
     backgroundColor: colors.accentSoft,
@@ -283,6 +342,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: colors.textSecondary,
+    writingDirection: 'ltr',
   },
   servingChipTextActive: {
     color: colors.accent,
@@ -298,6 +358,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingHorizontal: 18,
     paddingVertical: 14,
+    minHeight: 44,
   },
   changeLabel: {
     flex: 1,

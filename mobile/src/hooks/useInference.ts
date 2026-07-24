@@ -5,11 +5,16 @@ import { analyzeFoodWithAi, AI_MODEL_VERSION, isAiScanEnabled } from '@/inferenc
 import { isLowConfidence, loadModel, runInference } from '@/inference/yolo';
 import { useScanStore, useSettingsStore } from '@/hooks/useSettingsStore';
 import { SCAN_STEP_ORDER, type ScanStepId } from '@/components/ScanProgressOverlay';
+import { motion } from '@/theme/tokens';
 import type { Detection, NutritionItem, ScanResult } from '@/types';
 
 function wait(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+
+/** Time until Sattam overlay begins showing analysis steps (§3.4). */
+const SATTAM_INTRO_MS =
+  motion.sattamStartType + 6 * motion.sattamCharMs + motion.sattamStepsDelay;
 
 function isDemoUri(uri: string) {
   return uri.startsWith('web-demo:') || uri.startsWith('demo:');
@@ -64,7 +69,7 @@ export function useInference(): UseInferenceReturn {
       const nextStep = SCAN_STEP_ORDER[i];
       if (!nextStep) return;
       setScanStep(nextStep);
-      await wait(i === 0 ? 180 : 420 + Math.random() * 180);
+      await wait(motion.stepBase + Math.random() * motion.stepJitter);
     }
   }, []);
 
@@ -76,6 +81,8 @@ export function useInference(): UseInferenceReturn {
       setError(null);
       try {
         setScanStep('recognize');
+        await wait(SATTAM_INTRO_MS);
+        if (cancelledRef.current) return null;
 
         // Built-in demo path — always returns a complete nutrition result.
         if (isDemoUri(imageUri)) {

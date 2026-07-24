@@ -1,7 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withTiming,
+} from 'react-native-reanimated';
 
 import { MacroBar } from '@/components/MacroBar';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { colors } from '@/theme/colors';
 import { motion } from '@/theme/tokens';
 import { typography } from '@/theme/typography';
@@ -23,6 +31,44 @@ interface CalorieCardProps {
   gramsLabel: string;
 }
 
+const REVEAL = Easing.bezier(0.2, 0, 0, 1);
+const STAGE = {
+  name: 140,
+  calories: 500,
+  protein: 900,
+  carbs: 1120,
+  fat: 1340,
+  confidence: 1620,
+} as const;
+
+function useReveal(delayMs: number, reduced: boolean) {
+  const opacity = useSharedValue(reduced ? 1 : 0);
+  const y = useSharedValue(reduced ? 0 : 14);
+
+  useEffect(() => {
+    if (reduced) {
+      opacity.value = 1;
+      y.value = 0;
+      return;
+    }
+    opacity.value = 0;
+    y.value = 14;
+    opacity.value = withDelay(
+      delayMs,
+      withTiming(1, { duration: motion.reveal, easing: REVEAL }),
+    );
+    y.value = withDelay(
+      delayMs,
+      withTiming(0, { duration: motion.reveal, easing: REVEAL }),
+    );
+  }, [delayMs, opacity, reduced, y]);
+
+  return useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ translateY: y.value }],
+  }));
+}
+
 export function CalorieCard({
   nutrition,
   foodName,
@@ -36,46 +82,62 @@ export function CalorieCard({
   confidenceLabel,
   gramsLabel,
 }: CalorieCardProps) {
+  const reduced = useReducedMotion();
   const calories = nutrition?.caloriesKcal ?? 0;
-  const [shown, setShown] = useState(0);
+  const [shown, setShown] = useState(reduced ? calories : 0);
   const pct = Math.round(Math.max(0, Math.min(1, confidence)) * 100);
   const confColor =
     confidence >= 0.85
-      ? colors.confidenceHigh
+      ? colors.confidence.high
       : confidence >= 0.6
-        ? colors.confidenceMid
-        : colors.confidenceLow;
+        ? colors.confidence.mid
+        : colors.confidence.low;
+
+  const nameStyle = useReveal(STAGE.name, reduced);
+  const calStyle = useReveal(STAGE.calories, reduced);
+  const confStyle = useReveal(STAGE.confidence, reduced);
 
   useEffect(() => {
+    if (reduced) {
+      setShown(calories);
+      return;
+    }
     let frame = 0;
-    const start = Date.now();
+    const startAt = Date.now() + STAGE.calories;
     const duration = motion.countUp;
     const tick = () => {
-      const t = Math.min(1, (Date.now() - start) / duration);
+      const now = Date.now();
+      if (now < startAt) {
+        frame = requestAnimationFrame(tick);
+        return;
+      }
+      const t = Math.min(1, (now - startAt) / duration);
       const eased = 1 - (1 - t) ** 3;
       setShown(Math.round(calories * eased));
       if (t < 1) frame = requestAnimationFrame(tick);
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [calories]);
+  }, [calories, reduced]);
 
   return (
     <View style={styles.card}>
       <View style={styles.header}>
-        <View style={styles.foodCopy}>
+        <Animated.View style={[styles.foodCopy, nameStyle]}>
           <Text style={styles.foodName}>{foodName}</Text>
           <Text style={styles.servingMeta}>{servingLabel}</Text>
-        </View>
-        <View style={[styles.confidencePill, { backgroundColor: `${confColor}1F` }]}>
+        </Animated.View>
+        <Animated.View
+          style={[styles.confidencePill, { backgroundColor: `${confColor}1F` }, confStyle]}
+        >
           <View style={[styles.confidenceDot, { backgroundColor: confColor }]} />
           <Text style={[styles.confidenceText, { color: confColor }]}>
             {confidenceLabel} · {pct}%
           </Text>
-        </View>
+        </Animated.View>
       </View>
 
-      <View style={styles.calorieBlock}>
+      <Animated.View style={[styles.calorieBlock, calStyle]}>
         <Text style={styles.calorieLabel}>{caloriesLabel}</Text>
         <View style={styles.calorieRow}>
           <Text style={styles.calorieNumber} accessibilityRole="text">
@@ -83,7 +145,7 @@ export function CalorieCard({
           </Text>
           <Text style={styles.kcal}>{kcalLabel}</Text>
         </View>
-      </View>
+      </Animated.View>
 
       <View style={styles.macros}>
         <MacroBar
@@ -91,21 +153,21 @@ export function CalorieCard({
           valueG={nutrition?.proteinG ?? 0}
           color={colors.protein}
           unitLabel={gramsLabel}
-          delay={80}
+          delay={reduced ? 0 : STAGE.protein}
         />
         <MacroBar
           label={carbsLabel}
           valueG={nutrition?.carbsG ?? 0}
           color={colors.carbs}
           unitLabel={gramsLabel}
-          delay={160}
+          delay={reduced ? 0 : STAGE.carbs}
         />
         <MacroBar
           label={fatLabel}
           valueG={nutrition?.fatG ?? 0}
           color={colors.fat}
           unitLabel={gramsLabel}
-          delay={240}
+          delay={reduced ? 0 : STAGE.fat}
         />
       </View>
     </View>
@@ -156,6 +218,7 @@ const styles = StyleSheet.create({
   confidenceText: {
     fontSize: 12,
     fontWeight: '600',
+    writingDirection: 'ltr',
   },
   calorieBlock: {
     marginTop: 18,
@@ -179,12 +242,13 @@ const styles = StyleSheet.create({
     letterSpacing: -2,
     lineHeight: 68,
     color: colors.calories,
+    writingDirection: 'ltr',
   },
   kcal: {
     ...typography.h2,
-    fontSize: 18,
+    fontSize: 17,
     color: colors.textSecondary,
-    paddingBottom: 10,
+    paddingBottom: 9,
   },
   macros: {
     gap: 13,

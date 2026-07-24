@@ -1,12 +1,13 @@
 {
-  "brand": "SnapCal",
+  "brand": "Calora",
   "tagline": "Point. Scan. Know.",
   "credit": "Designed & Developed by Sattam Alkhalaf",
   "creditBy": "Designed & Developed by",
-  "engineSub": "Nutrition analysis",
+  "engineName": "Sattam AI",
+  "engineSub": "AI Nutrition Analysis",
   "camera": {
     "permissionTitle": "Camera access needed",
-    "permissionBody": "SnapCal recognizes food and drinks right on your device.",
+    "permissionBody": "Calora recognizes food and drinks right on your device.",
     "permissionPrivacy": "Photos never leave your phone",
     "grantPermission": "Enable camera",
     "notNow": "Not now",
@@ -45,7 +46,7 @@
     "confidenceHigh": "High",
     "confidenceMedium": "Medium",
     "confidenceLow": "Low",
-    "lowConfidenceTitle": "Not sure what this is",
+    "lowConfidenceTitle": "Confidence is low — pick the closest match",
     "lowConfidenceBody": "Confidence is low. Search the catalog and pick the closest match.",
     "notRight": "Not the right item?",
     "correct": "Change",
@@ -54,7 +55,13 @@
     "grams": "g",
     "unknownFood": "Unknown item",
     "perServing": "per serving",
-    "est": "Est."
+    "est": "Est.",
+    "noFoodTitle": "Place one plate or drink in the frame",
+    "noFoodAction": "Scan again",
+    "multiItemTitle": "Photograph one item at a time",
+    "multiItemAction": "Scan again",
+    "offlineBanner": "Recognition works on-device — sync resumes later",
+    "offlineReady": "Offline ready"
   },
   "correct": {
     "title": "Pick food or drink",
@@ -100,7 +107,7 @@
     "updateAvailable": "Update available",
     "haptics": "Haptics",
     "about": "About",
-    "aboutBody": "SnapCal recognizes food, drinks, and grocery items, then estimates calories and macros. If the match is wrong, pick from the catalog.",
+    "aboutBody": "Calora recognizes food, drinks, and grocery items, then estimates calories and macros. If the match is wrong, pick from the catalog.",
     "privacy": "Photos are analyzed securely and discarded. Corrections stay on this device by default."
   },
   "history": {
@@ -122,6 +129,7 @@
     "done": "Done",
     "retry": "Retry",
     "loading": "Loading…",
-    "error": "Something went wrong"
+    "error": "Something went wrong",
+    "appName": "Calora"
   }
 }

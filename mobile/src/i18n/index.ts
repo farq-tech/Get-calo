@@ -57,7 +57,16 @@ export async function initI18n(preferred?: LocaleCode): Promise<LocaleCode> {
 
 export async function setAppLanguage(locale: LocaleCode): Promise<boolean> {
   await i18n.changeLanguage(locale);
-  return applyRtl(locale);
+  const needsReload = applyRtl(locale);
+
+  // Web can flip direction immediately without a full reload.
+  if (typeof document !== 'undefined') {
+    document.documentElement.dir = isRtlLocale(locale) ? 'rtl' : 'ltr';
+    document.documentElement.lang = locale;
+    return false;
+  }
+
+  return needsReload;
 }
 
 export { detectDeviceLocale };
