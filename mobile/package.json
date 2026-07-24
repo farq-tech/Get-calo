@@ -12,7 +12,9 @@
     "typecheck": "tsc --noEmit",
     "prebuild": "expo prebuild",
     "build:dev:ios": "eas build --profile development --platform ios",
-    "build:dev:android": "eas build --profile development --platform android"
+    "build:dev:android": "eas build --profile development --platform android",
+    "build:preview:android": "eas build --profile preview --platform android --non-interactive",
+    "build:preview:ios": "eas build --profile preview --platform ios --non-interactive"
   },
   "dependencies": {
     "@expo-google-fonts/ibm-plex-sans-arabic": "^0.2.3",
