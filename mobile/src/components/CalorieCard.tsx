@@ -59,9 +59,7 @@ export function CalorieCard({
   return (
     <View style={styles.card}>
       <Text style={styles.foodName}>{foodName}</Text>
-      <Text style={styles.servingMeta}>
-        {servingTitle}: {servingLabel} · {perServingLabel}
-      </Text>
+      <Text style={styles.servingMeta}>{servingLabel}</Text>
 
       <View style={styles.calorieBlock}>
         <Text style={styles.calorieLabel}>{caloriesLabel}</Text>
