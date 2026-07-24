@@ -147,7 +147,7 @@ export default function CameraScreen() {
     return (
       <LinearGradient colors={[...colors.gradientDeep]} style={styles.fill}>
         <View style={[styles.permission, { paddingTop: insets.top + 48 }]}>
-          <BrandMark size="hero" subtitle={t('tagline')} />
+          <BrandMark size="hero" subtitle={t('tagline')} showCredit />
           <Text style={styles.permTitle}>{t('camera.permissionTitle')}</Text>
           <Text style={styles.permBody}>{t('camera.permissionBody')}</Text>
           <Pressable style={styles.permBtn} onPress={() => void requestPermission()}>
