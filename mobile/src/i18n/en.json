@@ -7,7 +7,11 @@
     "grantPermission": "Enable camera",
     "scanning": "Scanning…",
     "holdSteady": "Point at your meal",
-    "settings": "Settings"
+    "settings": "Settings",
+    "webTitle": "Try Calora on the web",
+    "webBody": "Upload a meal photo to run a demo scan in the browser. Full on-device camera scanning works best in the mobile app.",
+    "uploadPhoto": "Upload photo",
+    "demoScan": "Run demo scan"
   },
   "result": {
     "calories": "Calories",

@@ -1,6 +1,7 @@
 import React, { useCallback, useRef } from 'react';
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -28,6 +29,14 @@ export default function CameraScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const { scanning, scan } = useInference();
 
+  const runScan = useCallback(
+    async (uri: string) => {
+      const result = await scan(uri);
+      if (result) router.push('/result');
+    },
+    [router, scan],
+  );
+
   const onCapture = useCallback(async () => {
     if (!cameraRef.current || scanning) return;
     try {
@@ -36,14 +45,65 @@ export default function CameraScreen() {
         skipProcessing: false,
       });
       if (!photo?.uri) return;
-      const result = await scan(photo.uri);
-      if (result) {
-        router.push('/result');
-      }
+      await runScan(photo.uri);
     } catch (err) {
       console.warn('[calora/camera] capture failed', err);
     }
-  }, [router, scan, scanning]);
+  }, [runScan, scanning]);
+
+  const onWebUpload = useCallback(() => {
+    if (typeof document === 'undefined') return;
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      void runScan(URL.createObjectURL(file));
+    };
+    input.click();
+  }, [runScan]);
+
+  const onWebDemo = useCallback(() => {
+    void runScan('web-demo://meal');
+  }, [runScan]);
+
+  if (Platform.OS === 'web') {
+    return (
+      <LinearGradient colors={[...colors.gradientDeep]} style={styles.fill}>
+        <View style={[styles.permission, { paddingTop: insets.top + 48 }]}>
+          <BrandMark size="hero" subtitle={t('tagline')} />
+          <Text style={styles.permTitle}>{t('camera.webTitle')}</Text>
+          <Text style={styles.permBody}>{t('camera.webBody')}</Text>
+
+          {scanning ? (
+            <View style={styles.webScanning}>
+              <ActivityIndicator color={colors.accent} size="large" />
+              <Text style={styles.scanningText}>{t('camera.scanning')}</Text>
+            </View>
+          ) : (
+            <View style={styles.webActions}>
+              <Pressable style={styles.permBtn} onPress={onWebUpload}>
+                <Text style={styles.permBtnText}>{t('camera.uploadPhoto')}</Text>
+              </Pressable>
+              <Pressable style={styles.secondaryBtn} onPress={onWebDemo}>
+                <Text style={styles.secondaryBtnText}>{t('camera.demoScan')}</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('camera.settings')}
+                onPress={() => router.push('/settings')}
+                style={styles.settingsLink}
+              >
+                <Ionicons name="settings-outline" size={18} color={colors.textSecondary} />
+                <Text style={styles.settingsLinkText}>{t('camera.settings')}</Text>
+              </Pressable>
+            </View>
+          )}
+        </View>
+      </LinearGradient>
+    );
+  }
 
   if (!permission) {
     return <View style={styles.fill} />;
@@ -213,5 +273,38 @@ const styles = StyleSheet.create({
   permBtnText: {
     ...typography.button,
     color: colors.textInverse,
+  },
+  webActions: {
+    alignItems: 'center',
+    width: '100%',
+    maxWidth: 340,
+  },
+  webScanning: {
+    marginTop: 40,
+    alignItems: 'center',
+    gap: 12,
+  },
+  secondaryBtn: {
+    marginTop: 14,
+    paddingHorizontal: 28,
+    paddingVertical: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+  },
+  secondaryBtnText: {
+    ...typography.button,
+    color: colors.text,
+  },
+  settingsLink: {
+    marginTop: 28,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  settingsLinkText: {
+    ...typography.bodySm,
+    color: colors.textSecondary,
   },
 });

@@ -36,14 +36,16 @@ async function ensureModelDir(): Promise<void> {
 export async function getLocalModelInfo(): Promise<ModelInfo> {
   const session = getSession() ?? (await loadModel());
   let updateAvailable = false;
-  try {
-    const cached = await FileSystem.readAsStringAsync(MANIFEST_CACHE);
-    const parsed = JSON.parse(cached) as { version?: string };
-    if (parsed.version && parsed.version !== session.modelVersion) {
-      updateAvailable = true;
+  if (FileSystem.documentDirectory) {
+    try {
+      const cached = await FileSystem.readAsStringAsync(MANIFEST_CACHE);
+      const parsed = JSON.parse(cached) as { version?: string };
+      if (parsed.version && parsed.version !== session.modelVersion) {
+        updateAvailable = true;
+      }
+    } catch {
+      // no cache yet
     }
-  } catch {
-    // no cache yet
   }
 
   return {
