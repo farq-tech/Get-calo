@@ -27,6 +27,7 @@ export default function CorrectScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const result = useScanStore((s) => s.lastResult);
+  const applyNutritionOverride = useScanStore((s) => s.applyNutritionOverride);
   const locale = useSettingsStore((s) => s.locale);
   const hapticsEnabled = useSettingsStore((s) => s.hapticsEnabled);
 
@@ -34,14 +35,14 @@ export default function CorrectScreen() {
   const [items, setItems] = useState<NutritionItem[]>([]);
   const [selected, setSelected] = useState<NutritionItem | null>(null);
   const [customName, setCustomName] = useState('');
-  const [includePhoto, setIncludePhoto] = useState(true);
+  const [includePhoto, setIncludePhoto] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
-    void searchNutrition(query, 30).then((rows) => {
+    void searchNutrition(query, 80).then((rows) => {
       if (alive) setItems(rows);
     });
     return () => {
@@ -63,6 +64,11 @@ export default function CorrectScreen() {
     setError(null);
     setMessage(null);
 
+    // Always apply the pick locally so calories update for food/drink/anything.
+    if (selected) {
+      applyNutritionOverride(selected);
+    }
+
     const feedback = await submitFeedback({
       predictedClassId: result?.topDetection?.classId ?? null,
       predictedItemIdentity: result?.nutrition?.itemIdentity ?? null,
@@ -75,15 +81,15 @@ export default function CorrectScreen() {
 
     setSubmitting(false);
 
-    if (feedback.ok) {
-      if (hapticsEnabled) {
-        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      }
-      setMessage(t('correct.success'));
-      setTimeout(() => router.back(), 900);
-    } else {
-      setError(feedback.error ?? t('correct.error'));
+    if (hapticsEnabled) {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(
+        () => undefined,
+      );
     }
+
+    // Local override already applied; feedback sync is best-effort.
+    setMessage(feedback.ok ? t('correct.success') : t('correct.savedLocally'));
+    setTimeout(() => router.back(), 700);
   };
 
   return (

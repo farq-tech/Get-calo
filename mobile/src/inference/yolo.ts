@@ -1,17 +1,16 @@
 /**
- * On-device YOLO inference for Calora.
+ * On-device food/drink scan for Calora.
  *
  * Production path: onnxruntime-react-native (custom/dev client).
- * Expo Go / missing native module: deterministic mock detector so UI still works.
- *
- * Wire CoreML (.mlpackage) on iOS and TFLite on Android via a thin native bridge
- * when shipping store builds — see README.md.
+ * Expo Go / web / missing native module: catalog-backed mock so you can still
+ * scan meals, drinks, and snacks and correct them from the full nutrition list.
  */
 
 import { Platform } from 'react-native';
 
 import type { Detection } from '@/types';
 import { LOW_CONFIDENCE_THRESHOLD } from '@/types';
+import { getBundledNutritionSeed } from '@/db/seed';
 
 export const BUNDLED_MODEL_VERSION = '1.0.0-bundled';
 
@@ -36,7 +35,6 @@ async function tryLoadOrt(): Promise<typeof import('onnxruntime-react-native') |
   if (ortLoadAttempted) return ortModule;
   ortLoadAttempted = true;
   try {
-    // Dynamic import so Expo Go does not hard-crash when the native module is absent.
     ortModule = await import('onnxruntime-react-native');
     return ortModule;
   } catch {
@@ -45,9 +43,6 @@ async function tryLoadOrt(): Promise<typeof import('onnxruntime-react-native') |
   }
 }
 
-/**
- * Preferred backend for the current platform when a native model is present.
- */
 export function preferredBackend(): InferenceBackend {
   if (Platform.OS === 'ios') return 'coreml';
   if (Platform.OS === 'android') return 'tflite';
@@ -59,8 +54,6 @@ export async function loadModel(): Promise<InferenceSession> {
 
   const ort = await tryLoadOrt();
   if (ort) {
-    // Production: load assets/models/food_yolo.onnx (or platform-specific asset).
-    // Ort session creation is deferred until the binary is bundled in a custom build.
     session = {
       backend: 'onnx',
       modelVersion: BUNDLED_MODEL_VERSION,
@@ -81,9 +74,6 @@ export function getSession(): InferenceSession | null {
   return session;
 }
 
-/**
- * Hash a URI string into a stable pseudo-random seed for mock detections.
- */
 function hashUri(uri: string): number {
   let h = 2166136261;
   for (let i = 0; i < uri.length; i += 1) {
@@ -93,12 +83,15 @@ function hashUri(uri: string): number {
   return h >>> 0;
 }
 
+function catalogSize(): number {
+  return Math.max(1, getBundledNutritionSeed().length);
+}
+
 function mockDetections(uri: string, threshold: number): Detection[] {
-  // Bundled auto model has 40 classes (class_id 0–39) until a larger model ships.
-  const DEMO_CLASS_COUNT = 40;
+  const classCount = catalogSize();
   const seed = hashUri(uri);
-  const classId = seed % DEMO_CLASS_COUNT;
-  const confidence = 0.55 + ((seed % 40) / 100); // 0.55 – 0.94 (usually above threshold)
+  const classId = seed % classCount;
+  const confidence = 0.55 + ((seed % 40) / 100);
   const jitter = ((seed >> 8) % 20) / 100;
 
   const primary: Detection = {
@@ -113,7 +106,7 @@ function mockDetections(uri: string, threshold: number): Detection[] {
   };
 
   const secondary: Detection = {
-    classId: (classId + 3) % DEMO_CLASS_COUNT,
+    classId: (classId + 7) % classCount,
     confidence: Math.max(0.15, primary.confidence - 0.28),
     bbox: {
       x: 0.55,
@@ -126,10 +119,6 @@ function mockDetections(uri: string, threshold: number): Detection[] {
   return [primary, secondary].filter((d) => d.confidence >= threshold * 0.5);
 }
 
-/**
- * Run YOLO inference on a local image URI.
- * Returns detections sorted by confidence descending.
- */
 export async function runInference(
   uri: string,
   options: RunInferenceOptions = {},
@@ -140,12 +129,7 @@ export async function runInference(
   const active = session ?? (await loadModel());
 
   if (active.backend === 'onnx' && ortModule) {
-    // Placeholder for production ONNX path:
-    // 1. Decode image → float32 NCHW tensor (letterbox 640)
-    // 2. session.run({ images: tensor })
-    // 3. NMS + class decode against labels.json
-    // Until the .onnx binary is bundled, fall through to mock so UX remains demoable.
-    console.info('[calora/yolo] ONNX module present — using mock until model asset is bundled');
+    console.info('[calora/yolo] ONNX module present — using catalog match until model is wired');
   }
 
   const detections = mockDetections(uri, threshold)
