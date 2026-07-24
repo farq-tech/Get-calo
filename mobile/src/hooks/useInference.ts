@@ -1,15 +1,34 @@
 import { useCallback, useRef, useState } from 'react';
 
-import { lookupByClassId } from '@/db/nutrition';
+import { lookupByClassId, searchNutrition } from '@/db/nutrition';
 import { analyzeFoodWithAi, AI_MODEL_VERSION, isAiScanEnabled } from '@/inference/aiVision';
 import { isLowConfidence, loadModel, runInference } from '@/inference/yolo';
 import { useScanStore, useSettingsStore } from '@/hooks/useSettingsStore';
 import { SCAN_STEP_ORDER, type ScanStepId } from '@/components/ScanProgressOverlay';
-import type { Detection, ScanResult } from '@/types';
+import type { Detection, NutritionItem, ScanResult } from '@/types';
 
 function wait(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+
+function isDemoUri(uri: string) {
+  return uri.startsWith('web-demo:') || uri.startsWith('demo:');
+}
+
+const DEMO_NUTRITION: NutritionItem = {
+  itemIdentity: 'demo.chicken_kabsa',
+  classId: -100,
+  nameEn: 'Chicken Kabsa',
+  nameAr: 'كبسة دجاج',
+  caloriesKcal: 487,
+  proteinG: 32,
+  carbsG: 54,
+  fatG: 18,
+  servingSizeG: 240,
+  servingLabelEn: '1 plate',
+  servingLabelAr: 'صحن واحد',
+  category: 'meal',
+};
 
 export interface UseInferenceReturn {
   scanning: boolean;
@@ -55,6 +74,33 @@ export function useInference(): UseInferenceReturn {
       setError(null);
       try {
         setScanStep('recognize');
+
+        // Built-in demo path — always returns a complete nutrition result.
+        if (isDemoUri(imageUri)) {
+          await advanceSteps('finalize');
+          if (cancelledRef.current) return null;
+          const matches = await searchNutrition('kabsa', 5);
+          const nutrition = matches[0] ?? DEMO_NUTRITION;
+          const detection: Detection = {
+            classId: nutrition.classId ?? -100,
+            confidence: 0.94,
+            bbox: { x: 0.12, y: 0.12, width: 0.76, height: 0.76 },
+            label: nutrition.nameEn,
+          };
+          const result: ScanResult = {
+            imageUri,
+            detections: [detection],
+            topDetection: detection,
+            nutrition,
+            confidence: 0.94,
+            lowConfidence: false,
+            modelVersion: 'demo-1.0',
+            inferredAt: new Date().toISOString(),
+            usedFallback: false,
+          };
+          setLastResult(result);
+          return result;
+        }
 
         if (isAiScanEnabled()) {
           try {
