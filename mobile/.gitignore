@@ -1,0 +1,39 @@
+node_modules/
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+
+ios/
+android/
+.DS_Store
+*.pem
+
+# Local env
+.env
+.env.local
+.env.*.local
+
+# Native model artifacts (large binaries)
+# Large trained weights — keep the shipped Calora ONNX in-repo for web/native bundling.
+assets/models/*.onnx
+!assets/models/best.onnx
+assets/models/*.tflite
+assets/models/*.mlmodel
+assets/models/*.mlpackage
+!assets/models/.gitkeep
+!assets/models/labels.json
+!assets/models/manifest.json
+!assets/models/nutrition.sqlite
+
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+.vercel

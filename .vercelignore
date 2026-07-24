@@ -1,0 +1,13 @@
+ml/data/**
+ml/models/**
+ml/**/.venv/**
+ml/**/__pycache__/**
+**/node_modules/**
+**/.next/**
+**/.git/**
+mobile/node_modules/**
+admin/.next/**
+**/*.pt
+**/*.onnx
+**/*.sqlite
+mobile/.expo/**

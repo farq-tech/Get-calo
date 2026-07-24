@@ -1,0 +1,43 @@
+# Calora — Render Blueprint
+# Admin dashboard + optional ML cron documentation service.
+# Inference stays on-device; this Blueprint never hosts Vision APIs.
+# https://render.com/docs/blueprint-spec
+
+previews:
+  generation: manual
+
+services:
+  - type: web
+    name: calora-admin
+    runtime: node
+    plan: starter
+    region: oregon
+    rootDir: admin
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    healthCheckPath: /
+    autoDeployTrigger: commit
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+
+  # Optional: scheduled dataset refresh note-runner (does NOT train GPU jobs on free tier).
+  # Point this at a worker VM / GPU host via webhook in production.
+  - type: cron
+    name: calora-dataset-health-ping
+    runtime: node
+    plan: starter
+    region: oregon
+    rootDir: admin
+    schedule: "0 6 * * 1"
+    buildCommand: npm install
+    startCommand: node -e "console.log('Run ml pipeline on GPU host; see docs/PRODUCTION_DEPLOYMENT.md')"
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
