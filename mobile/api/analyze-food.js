@@ -24,7 +24,8 @@ Return ONLY valid JSON (no markdown) with this shape:
 }
 
 Rules:
-- If the image is not food/drink, still return JSON with low confidence and name_en "Unknown item".
+- Soft drinks, juice, milk, laban, water bottles, cans, and grocery packs ARE food/drink — identify them normally.
+- Only if the image is clearly not edible (person, receipt, empty table) use low confidence and name_en "Unknown item".
 - Calories/macros must be realistic for the serving_size_g you choose.
 - Use Arabic (Saudi) for name_ar and serving_label_ar.
 - confidence >= 0.75 when clearly identifiable.`;
