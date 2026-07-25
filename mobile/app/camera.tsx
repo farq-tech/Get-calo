@@ -27,8 +27,6 @@ import { typography } from '@/theme/typography';
 
 import demoMeal from '../assets/samples/demo-meal.jpg';
 
-type ScanMode = 'food' | 'drink' | 'snack';
-
 function WebLiveVideo({
   bindVideo,
 }: {
@@ -92,7 +90,6 @@ export default function CameraScreen() {
   const webCamera = useWebCamera();
   const { scanning, scanStep, previewUri, scan, cancelScan, error, resetError } = useInference();
   const [capturedUri, setCapturedUri] = useState<string | null>(null);
-  const [mode, setMode] = useState<ScanMode>('food');
   const [flashOn, setFlashOn] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
 
@@ -101,8 +98,6 @@ export default function CameraScreen() {
   const frameW = Math.max(0, Math.min(width - 48, 360));
   const frameH = Math.min(280, Math.max(180, height * 0.32));
   const webReady = webCamera.status === 'ready';
-  const webBlocked =
-    webCamera.status === 'denied' || webCamera.status === 'unavailable';
   const bannerError = localError ?? error;
 
   const runScan = useCallback(
@@ -192,18 +187,6 @@ export default function CameraScreen() {
     input.click();
   }, [runScan]);
 
-  const modeChip = (id: ScanMode, label: string) => (
-    <Pressable
-      key={id}
-      onPress={() => setMode(id)}
-      style={[styles.modeChip, mode === id && styles.modeChipActive]}
-    >
-      <Text style={[styles.modeChipText, mode === id && styles.modeChipTextActive]}>
-        {label}
-      </Text>
-    </Pressable>
-  );
-
   if (Platform.OS === 'web') {
     return (
       <View style={styles.fill}>
@@ -270,15 +253,9 @@ export default function CameraScreen() {
                 </Text>
               </LinearGradient>
             </Pressable>
-            {webBlocked ? (
-              <Pressable onPress={onWebUploadFallback} style={styles.notNow}>
-                <Text style={styles.webFallbackAction}>{t('camera.uploadPhoto')}</Text>
-              </Pressable>
-            ) : (
-              <Pressable onPress={onWebUploadFallback} style={styles.notNow}>
-                <Text style={styles.notNowText}>{t('camera.notNow')}</Text>
-              </Pressable>
-            )}
+            <Pressable onPress={onWebUploadFallback} style={styles.notNow}>
+              <Text style={styles.webFallbackAction}>{t('camera.uploadPhoto')}</Text>
+            </Pressable>
           </View>
         ) : (
           <View style={styles.webUi} pointerEvents="box-none">
@@ -303,15 +280,14 @@ export default function CameraScreen() {
             </View>
 
             <View style={[styles.webDock, { paddingBottom: webBottomPad }]}>
-              <View style={styles.modeRow}>
-                {modeChip('food', t('camera.modeFood'))}
-                {modeChip('drink', t('camera.modeDrink'))}
-                {modeChip('snack', t('camera.modeSnack'))}
-              </View>
-
               <View style={styles.bottomChromeFlex}>
-                <Pressable style={styles.sideBtn} onPress={() => router.push('/correct')}>
+                <Pressable
+                  style={styles.sideBtn}
+                  onPress={() => router.push('/correct')}
+                  accessibilityLabel={t('camera.catalogSearch')}
+                >
                   <Ionicons name="search" size={20} color={colors.textSecondary} />
+                  <Text style={styles.sideLabel}>{t('camera.catalogSearch')}</Text>
                 </Pressable>
                 <View style={styles.shutterWrap}>
                   <ShutterButton onPress={() => void onWebCapture()} busy={scanning} />
@@ -322,6 +298,7 @@ export default function CameraScreen() {
                   accessibilityLabel={t('camera.demoScan')}
                 >
                   <Ionicons name="sparkles-outline" size={20} color={colors.textSecondary} />
+                  <Text style={styles.sideLabel}>{t('camera.tryDemo')}</Text>
                 </Pressable>
               </View>
               <Text style={styles.tapHintFlex}>{t('camera.tapToScan')}</Text>
@@ -420,17 +397,14 @@ export default function CameraScreen() {
         <ViewfinderFrame width={frameW} height={frameH} />
       </View>
 
-      <View style={[styles.modes, { bottom: Math.max(206, insets.bottom + 172) }]}>
-        <View style={styles.modeRow}>
-          {modeChip('food', t('camera.modeFood'))}
-          {modeChip('drink', t('camera.modeDrink'))}
-          {modeChip('snack', t('camera.modeSnack'))}
-        </View>
-      </View>
-
       <View style={[styles.bottomChrome, { bottom: Math.max(64, insets.bottom + 30) }]}>
-        <Pressable style={styles.sideBtn} onPress={() => router.push('/correct')}>
+        <Pressable
+          style={styles.sideBtn}
+          onPress={() => router.push('/correct')}
+          accessibilityLabel={t('camera.catalogSearch')}
+        >
           <Ionicons name="search" size={20} color={colors.textSecondary} />
+          <Text style={styles.sideLabel}>{t('camera.catalogSearch')}</Text>
         </Pressable>
         <View style={styles.shutterWrap}>
           <ShutterButton onPress={() => void onCapture()} busy={scanning} />
@@ -575,39 +549,6 @@ const styles = StyleSheet.create({
     left: 36,
     zIndex: 1,
   },
-  modes: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-    zIndex: 2,
-  },
-  modeRow: {
-    flexDirection: 'row',
-    gap: 2,
-    backgroundColor: colors.overlay,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.full,
-    padding: 3,
-  },
-  modeChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: radius.full,
-  },
-  modeChipActive: {
-    backgroundColor: 'rgba(45,212,168,0.16)',
-  },
-  modeChipText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: colors.textMuted,
-  },
-  modeChipTextActive: {
-    fontWeight: '600',
-    color: colors.accent,
-  },
   bottomChrome: {
     position: 'absolute',
     left: 0,
@@ -615,7 +556,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 44,
+    gap: 36,
     zIndex: 2,
   },
   shutterWrap: {
@@ -625,14 +566,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   sideBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    minWidth: 64,
+    height: 56,
+    borderRadius: 18,
+    paddingHorizontal: 8,
     backgroundColor: 'rgba(28,38,34,0.8)',
     borderWidth: 1,
     borderColor: colors.borderStrong,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 2,
+  },
+  sideLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: colors.textMuted,
   },
   sideBtnActive: {
     backgroundColor: 'rgba(45,212,168,0.2)',

@@ -14,11 +14,11 @@ import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 
 import { type SavedMeal, useMealStore } from '@/hooks/useMealStore';
+import { useSettingsStore } from '@/hooks/useSettingsStore';
 import { colors } from '@/theme/colors';
 import { radius, spacing } from '@/theme/tokens';
 import { typography } from '@/theme/typography';
 
-const DAILY_GOAL = 2000;
 type HistoryTab = 'today' | 'week' | 'all';
 
 export default function HistoryScreen() {
@@ -26,6 +26,7 @@ export default function HistoryScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const meals = useMealStore((s) => s.meals);
+  const dailyGoalKcal = useSettingsStore((s) => s.dailyGoalKcal);
   const [tab, setTab] = useState<HistoryTab>('today');
 
   const todayMeals = useMemo(() => meals.filter((meal) => isToday(meal.savedAt)), [meals]);
@@ -36,7 +37,7 @@ export default function HistoryScreen() {
   }, [meals, tab, todayMeals]);
 
   const todayTotal = todayMeals.reduce((sum, meal) => sum + Math.round(meal.caloriesKcal), 0);
-  const goalPct = Math.min(100, Math.round((todayTotal / DAILY_GOAL) * 100));
+  const goalPct = Math.min(100, Math.round((todayTotal / Math.max(dailyGoalKcal, 1)) * 100));
   const tabs: Array<{ id: HistoryTab; label: string }> = [
     { id: 'today', label: t('history.today') },
     { id: 'week', label: t('history.week') },

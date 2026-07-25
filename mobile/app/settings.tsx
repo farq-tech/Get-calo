@@ -26,6 +26,8 @@ export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const locale = useSettingsStore((s) => s.locale);
   const setLocale = useSettingsStore((s) => s.setLocale);
+  const dailyGoalKcal = useSettingsStore((s) => s.dailyGoalKcal);
+  const cycleDailyGoal = useSettingsStore((s) => s.cycleDailyGoal);
   const shareFeedbackEnabled = useSettingsStore((s) => s.shareFeedbackEnabled);
   const setShareFeedbackEnabled = useSettingsStore((s) => s.setShareFeedbackEnabled);
 
@@ -71,8 +73,20 @@ export default function SettingsScreen() {
       >
         <SectionTitle label={t('settings.goals')} first />
         <View style={styles.card}>
-          <SettingsRow label={t('settings.dailyGoal')} value={`2,000 ${t('result.kcal')}`} accent />
-          <SettingsRow label={t('settings.units')} value={t('settings.metric')} last />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityHint={t('settings.tapToChangeGoal')}
+            onPress={() => cycleDailyGoal()}
+            style={[styles.row, styles.lastRow]}
+          >
+            <View style={styles.rowTextWrap}>
+              <Text style={styles.rowLabel}>{t('settings.dailyGoal')}</Text>
+              <Text style={styles.rowSub}>{t('settings.tapToChangeGoal')}</Text>
+            </View>
+            <Text style={[styles.rowValue, styles.rowValueAccent]}>
+              {dailyGoalKcal.toLocaleString('en-US')} {t('result.kcal')}
+            </Text>
+          </Pressable>
         </View>
 
         <SectionTitle label={t('settings.language')} />
@@ -118,9 +132,8 @@ export default function SettingsScreen() {
         </View>
 
         <View style={styles.footer}>
-          <Text style={styles.footerMeta}>Calora 1.0 · farq-tech/Get-calo</Text>
+          <Text style={styles.footerMeta}>{t('settings.versionLabel')}</Text>
           <Text style={styles.footerCredit}>{t('madeWithLove')}</Text>
-          <Text style={styles.footerStamp}>{t('companyStamp')}</Text>
         </View>
       </ScrollView>
     </View>
@@ -317,15 +330,5 @@ const styles = StyleSheet.create({
   footerCredit: {
     fontSize: 12,
     color: colors.textMuted,
-  },
-  footerStamp: {
-    fontFamily: typography.body.fontFamily,
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.textSecondary,
-    letterSpacing: 0.3,
-    marginTop: 2,
-    writingDirection: 'rtl',
-    textAlign: 'center',
   },
 });

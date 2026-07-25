@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   I18nManager,
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -22,6 +23,8 @@ import { colors } from '@/theme/colors';
 import { motion, radius, spacing } from '@/theme/tokens';
 import { typography } from '@/theme/typography';
 
+import demoMeal from '../assets/samples/demo-meal.jpg';
+
 const SERVING_FACTORS = [1, 1.33, 1.9];
 
 export default function ResultScreen() {
@@ -33,6 +36,7 @@ export default function ResultScreen() {
   const locale = useSettingsStore((s) => s.locale);
   const [servingIdx, setServingIdx] = useState(0);
   const [showToast, setShowToast] = useState(false);
+  const [saved, setSaved] = useState(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const plateItems = result?.items?.length ? result.items : result?.nutrition ? [result.nutrition] : [];
@@ -88,13 +92,17 @@ export default function ResultScreen() {
   const noFood = Boolean(result && !result.nutrition);
 
   useEffect(() => {
+    setSaved(false);
+  }, [result?.inferredAt, result?.imageUri]);
+
+  useEffect(() => {
     return () => {
       if (toastTimer.current) clearTimeout(toastTimer.current);
     };
   }, []);
 
   const onSaveMeal = () => {
-    if (!result || !scaledNutrition) return;
+    if (!result || !scaledNutrition || saved) return;
     const saveName = isPlate
       ? `${foodName}: ${plateItems
           .map((item) => (locale === 'ar' && item.nameAr ? item.nameAr : item.nameEn))
@@ -110,6 +118,7 @@ export default function ResultScreen() {
       confidence: result.confidence,
       imageUri: result.imageUri,
     });
+    setSaved(true);
     setShowToast(true);
     if (toastTimer.current) clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setShowToast(false), 2600);
@@ -168,6 +177,17 @@ export default function ResultScreen() {
         showsVerticalScrollIndicator={false}
       >
         <Animated.View entering={FadeIn.duration(motion.emphasized)}>
+          {result.imageUri ? (
+            <Image
+              source={
+                result.imageUri.startsWith('web-demo:') || result.imageUri.startsWith('demo:')
+                  ? demoMeal
+                  : { uri: result.imageUri }
+              }
+              style={styles.heroThumb}
+            />
+          ) : null}
+
           {lowConfidence ? (
             <Pressable style={styles.lowBanner} onPress={() => router.push('/correct')}>
               <Text style={styles.lowBannerText}>{t('result.lowConfidenceTitle')}</Text>
@@ -238,9 +258,18 @@ export default function ResultScreen() {
         <Pressable style={styles.ghostBtn} onPress={() => router.replace('/camera')}>
           <Text style={styles.ghostBtnText}>{t('result.scanAgain')}</Text>
         </Pressable>
-        <Pressable style={styles.saveHit} onPress={onSaveMeal}>
-          <LinearGradient colors={[...colors.gradientPrimary]} style={styles.saveBtn}>
-            <Text style={styles.saveBtnText}>{t('result.save')}</Text>
+        <Pressable
+          style={[styles.saveHit, saved && styles.saveHitDone]}
+          onPress={saved ? () => router.push('/history') : onSaveMeal}
+          disabled={false}
+        >
+          <LinearGradient
+            colors={saved ? ['#1C2622', '#1C2622'] : [...colors.gradientPrimary]}
+            style={styles.saveBtn}
+          >
+            <Text style={[styles.saveBtnText, saved && styles.saveBtnTextDone]}>
+              {saved ? t('result.saved') : t('result.save')}
+            </Text>
           </LinearGradient>
         </Pressable>
       </LinearGradient>
@@ -291,6 +320,13 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: spacing.lg - 4,
+  },
+  heroThumb: {
+    width: '100%',
+    height: 168,
+    borderRadius: radius.xl,
+    marginBottom: 14,
+    backgroundColor: colors.bgElevated,
   },
   empty: {
     flex: 1,
@@ -421,16 +457,24 @@ const styles = StyleSheet.create({
   saveHit: {
     flex: 1.4,
   },
+  saveHitDone: {
+    opacity: 1,
+  },
   saveBtn: {
     height: 54,
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'transparent',
   },
   saveBtnText: {
     fontSize: 15,
     fontWeight: '700',
     color: colors.textInverse,
+  },
+  saveBtnTextDone: {
+    color: colors.accent,
   },
   primaryHit: {
     alignSelf: 'stretch',

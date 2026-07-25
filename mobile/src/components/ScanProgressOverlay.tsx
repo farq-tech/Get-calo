@@ -341,7 +341,6 @@ export function ScanProgressOverlay({ imageUri, step, onBack, imageSource }: Pro
                 {t('engineName')}
               </Text>
               <Text style={styles.engineSub}>{t('engineSub')}</Text>
-              <Text style={styles.companyStamp}>{t('companyStamp')}</Text>
             </Animated.View>
           ) : null}
 
@@ -563,15 +562,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: colors.textSecondary,
     textAlign: 'center',
-  },
-  companyStamp: {
-    marginTop: 14,
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 0.4,
-    color: colors.textMuted,
-    textAlign: 'center',
-    writingDirection: 'rtl',
   },
   steps: {
     marginTop: 30,

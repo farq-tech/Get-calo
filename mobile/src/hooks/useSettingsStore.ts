@@ -1,32 +1,78 @@
 import { create } from 'zustand';
+import { createJSONStorage, persist } from 'zustand/middleware';
+import { Platform } from 'react-native';
 
 import type { LocaleCode, ModelInfo, ScanResult } from '@/types';
 import { LOW_CONFIDENCE_THRESHOLD } from '@/types';
 import { detectDeviceLocale } from '@/i18n';
+
+const GOAL_OPTIONS = [1500, 1800, 2000, 2200, 2500] as const;
+
+const webStorage = {
+  getItem: (name: string) => {
+    if (typeof localStorage === 'undefined') return null;
+    return localStorage.getItem(name);
+  },
+  setItem: (name: string, value: string) => {
+    if (typeof localStorage === 'undefined') return;
+    localStorage.setItem(name, value);
+  },
+  removeItem: (name: string) => {
+    if (typeof localStorage === 'undefined') return;
+    localStorage.removeItem(name);
+  },
+};
 
 interface SettingsState {
   locale: LocaleCode;
   hapticsEnabled: boolean;
   shareFeedbackEnabled: boolean;
   confidenceThreshold: number;
+  dailyGoalKcal: number;
   hydrated: boolean;
   setLocale: (locale: LocaleCode) => void;
   setHapticsEnabled: (enabled: boolean) => void;
   setShareFeedbackEnabled: (enabled: boolean) => void;
+  setDailyGoalKcal: (kcal: number) => void;
+  cycleDailyGoal: () => void;
   setHydrated: (value: boolean) => void;
 }
 
-export const useSettingsStore = create<SettingsState>((set) => ({
-  locale: detectDeviceLocale(),
-  hapticsEnabled: true,
-  shareFeedbackEnabled: false,
-  confidenceThreshold: LOW_CONFIDENCE_THRESHOLD,
-  hydrated: false,
-  setLocale: (locale) => set({ locale }),
-  setHapticsEnabled: (hapticsEnabled) => set({ hapticsEnabled }),
-  setShareFeedbackEnabled: (shareFeedbackEnabled) => set({ shareFeedbackEnabled }),
-  setHydrated: (hydrated) => set({ hydrated }),
-}));
+export const useSettingsStore = create<SettingsState>()(
+  persist(
+    (set, get) => ({
+      locale: detectDeviceLocale(),
+      hapticsEnabled: true,
+      shareFeedbackEnabled: false,
+      confidenceThreshold: LOW_CONFIDENCE_THRESHOLD,
+      dailyGoalKcal: 2000,
+      hydrated: false,
+      setLocale: (locale) => set({ locale }),
+      setHapticsEnabled: (hapticsEnabled) => set({ hapticsEnabled }),
+      setShareFeedbackEnabled: (shareFeedbackEnabled) => set({ shareFeedbackEnabled }),
+      setDailyGoalKcal: (dailyGoalKcal) => set({ dailyGoalKcal }),
+      cycleDailyGoal: () => {
+        const current = get().dailyGoalKcal;
+        const idx = GOAL_OPTIONS.indexOf(current as (typeof GOAL_OPTIONS)[number]);
+        const next = GOAL_OPTIONS[(idx + 1) % GOAL_OPTIONS.length] ?? 2000;
+        set({ dailyGoalKcal: next });
+      },
+      setHydrated: (hydrated) => set({ hydrated }),
+    }),
+    {
+      name: 'calora-settings-v1',
+      storage: createJSONStorage(() =>
+        Platform.OS === 'web' ? webStorage : webStorage,
+      ),
+      partialize: (state) => ({
+        locale: state.locale,
+        shareFeedbackEnabled: state.shareFeedbackEnabled,
+        dailyGoalKcal: state.dailyGoalKcal,
+        hapticsEnabled: state.hapticsEnabled,
+      }),
+    },
+  ),
+);
 
 interface ScanState {
   lastResult: ScanResult | null;
