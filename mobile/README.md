@@ -1,4 +1,4 @@
-# Calora — AI Calorie Scanner (Mobile)
+# Calora — Calorie Scanner (Mobile)
 
 On-device YOLO food recognition with offline nutrition lookup. Dark teal UI, English + Arabic (RTL).
 
