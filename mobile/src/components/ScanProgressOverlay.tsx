@@ -249,11 +249,7 @@ export function ScanProgressOverlay({ imageUri, step, onBack, imageSource }: Pro
     opacity: cursorOp.value,
   }));
 
-  const source =
-    imageSource ??
-    (imageUri.startsWith('web-demo:') || imageUri.startsWith('demo:')
-      ? undefined
-      : { uri: imageUri });
+  const source = imageSource ?? { uri: imageUri };
 
   const visibleSteps = useMemo(() => {
     if (!showSteps) return [];

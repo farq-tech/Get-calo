@@ -24,8 +24,6 @@ import { motion, radius, spacing } from '@/theme/tokens';
 import { typography } from '@/theme/typography';
 import { LOW_CONFIDENCE_THRESHOLD } from '@/types';
 
-import demoMeal from '../assets/samples/demo-meal.jpg';
-
 const SERVING_FACTORS = [1, 1.33, 1.9];
 
 
@@ -190,14 +188,7 @@ export default function ResultScreen() {
       >
         <Animated.View entering={FadeIn.duration(motion.emphasized)}>
           {result.imageUri ? (
-            <Image
-              source={
-                result.imageUri.startsWith('web-demo:') || result.imageUri.startsWith('demo:')
-                  ? demoMeal
-                  : { uri: result.imageUri }
-              }
-              style={styles.heroThumb}
-            />
+            <Image source={{ uri: result.imageUri }} style={styles.heroThumb} />
           ) : null}
 
           {lowConfidence ? (

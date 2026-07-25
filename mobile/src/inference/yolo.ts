@@ -8,7 +8,6 @@
  * Falls back to catalog mock only if the model cannot load.
  */
 
-import { Asset } from 'expo-asset';
 import { Platform } from 'react-native';
 
 import type { Detection } from '@/types';
@@ -19,8 +18,6 @@ import { getModelClass, getModelClasses } from './labels';
 import { runOnnx, getOnnxSession, getOrtLoadError } from './ortSession';
 import { decodeYoloOutput } from './postprocess';
 import { preprocessImageUri } from './preprocess';
-
-import demoMeal from '../../assets/samples/demo-meal.jpg';
 
 export const BUNDLED_MODEL_VERSION = '1.2.0-essential69-drinks';
 
@@ -107,13 +104,8 @@ function mockDetections(uri: string, threshold: number): Detection[] {
   return [primary].filter((d) => d.confidence >= threshold * 0.5);
 }
 
-/** Resolve demo / non-file URIs to a real sample meal photo. */
+/** Resolve scan URI (identity — kept for callers that previously remapped demo URIs). */
 export async function resolveScanUri(uri: string): Promise<string> {
-  if (uri.startsWith('web-demo:') || uri.startsWith('demo:')) {
-    const asset = Asset.fromModule(demoMeal);
-    await asset.downloadAsync();
-    return asset.localUri ?? asset.uri;
-  }
   return uri;
 }
 
