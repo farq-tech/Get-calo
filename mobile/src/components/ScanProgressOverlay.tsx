@@ -571,6 +571,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
     color: colors.textMuted,
     textAlign: 'center',
+    writingDirection: 'rtl',
   },
   steps: {
     marginTop: 30,

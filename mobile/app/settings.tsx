@@ -325,5 +325,7 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     letterSpacing: 0.3,
     marginTop: 2,
+    writingDirection: 'rtl',
+    textAlign: 'center',
   },
 });
