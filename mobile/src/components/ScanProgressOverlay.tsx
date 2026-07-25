@@ -552,12 +552,6 @@ const styles = StyleSheet.create({
     color: colors.text,
     writingDirection: 'ltr',
   },
-  engineSub: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: colors.textSecondary,
-    textAlign: 'center',
-  },
   steps: {
     marginTop: 30,
     width: 250,
