@@ -119,7 +119,8 @@ export default function SettingsScreen() {
 
         <View style={styles.footer}>
           <Text style={styles.footerMeta}>Calora 1.0 · farq-tech/Get-calo</Text>
-          <Text style={styles.footerCredit}>{t('creditBy')} Sattam Alkhalaf</Text>
+          <Text style={styles.footerCredit}>{t('madeWithLove')}</Text>
+          <Text style={styles.footerStamp}>{t('companyStamp')}</Text>
         </View>
       </ScrollView>
     </View>
@@ -316,5 +317,13 @@ const styles = StyleSheet.create({
   footerCredit: {
     fontSize: 12,
     color: colors.textMuted,
+  },
+  footerStamp: {
+    fontFamily: typography.body.fontFamily,
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    letterSpacing: 0.3,
+    marginTop: 2,
   },
 });

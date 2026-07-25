@@ -316,7 +316,7 @@ export function ScanProgressOverlay({ imageUri, step, onBack, imageSource }: Pro
       ) : null}
 
       <View style={styles.center}>
-        <Animated.Text style={[styles.credit, creditStyle]}>{t('creditBy')}</Animated.Text>
+        <Animated.Text style={[styles.credit, creditStyle]}>{t('madeWithLove')}</Animated.Text>
 
         <View style={styles.signatureBlock}>
           {(phase === 'type' || phase === 'credit') && !reducedMotion ? (
@@ -341,6 +341,7 @@ export function ScanProgressOverlay({ imageUri, step, onBack, imageSource }: Pro
                 {t('engineName')}
               </Text>
               <Text style={styles.engineSub}>{t('engineSub')}</Text>
+              <Text style={styles.companyStamp}>{t('companyStamp')}</Text>
             </Animated.View>
           ) : null}
 
@@ -561,6 +562,14 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '500',
     color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  companyStamp: {
+    marginTop: 14,
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 0.4,
+    color: colors.textMuted,
     textAlign: 'center',
   },
   steps: {

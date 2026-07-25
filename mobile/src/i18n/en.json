@@ -1,8 +1,10 @@
 {
   "brand": "Calora",
   "tagline": "Point. Scan. Know.",
-  "credit": "Designed & Developed by Sattam Alkhalaf",
-  "creditBy": "Designed & Developed by",
+  "credit": "Made with love in Riyadh · فرق ببتكنولوجيا",
+  "creditBy": "Made with love in Riyadh",
+  "madeWithLove": "Made with love in Riyadh",
+  "companyStamp": "فرق ببتكنولوجيا",
   "engineName": "get Calo AI",
   "engineSub": "AI Nutrition Analysis",
   "camera": {

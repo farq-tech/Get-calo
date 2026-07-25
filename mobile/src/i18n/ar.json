@@ -1,8 +1,10 @@
 {
   "brand": "Calora",
   "tagline": "صوّر. امسح. اعرف.",
-  "credit": "تصميم وتطوير بواسطة سطام الخلف",
-  "creditBy": "تصميم وتطوير",
+  "credit": "صُنع بحب في الرياض · فرق ببتكنولوجيا",
+  "creditBy": "صُنع بحب في الرياض",
+  "madeWithLove": "صُنع بحب في الرياض",
+  "companyStamp": "فرق ببتكنولوجيا",
   "engineName": "get Calo AI",
   "engineSub": "تحليل غذائي بالذكاء الاصطناعي",
   "camera": {
