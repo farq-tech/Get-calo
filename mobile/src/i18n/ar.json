@@ -3,8 +3,8 @@
   "tagline": "صوّر. امسح. اعرف.",
   "credit": "تصميم وتطوير بواسطة سطام الخلف",
   "creditBy": "تصميم وتطوير",
-  "engineName": "Sattam AI",
-  "engineSub": "تحليل غذائي بالذكاء الاصطناعي",
+  "engineName": "Sattam",
+  "engineSub": "تحليل غذائي",
   "camera": {
     "permissionTitle": "يلزم الوصول للكاميرا",
     "permissionBody": "كالورا تتعرف على الأكل والمشروبات على جهازك مباشرة.",

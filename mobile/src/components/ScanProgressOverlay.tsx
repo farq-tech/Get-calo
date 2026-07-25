@@ -58,7 +58,7 @@ const STEP_FADE = [1, 0.55, 0.28] as const;
 const CUBIC = Easing.bezier(0.2, 0, 0, 1);
 
 /**
- * Sattam AI cinematic analyzing — used only for real AI recognition flows.
+ * Sattam cinematic analyzing — used only for real recognition flows.
  * Exact timing from Calora design spec §3.4.
  */
 export function ScanProgressOverlay({ imageUri, step, onBack, imageSource }: Props) {
