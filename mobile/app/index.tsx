@@ -53,7 +53,7 @@ export default function Index() {
   }, [ring]);
 
   useEffect(() => {
-    const timer = setTimeout(() => router.replace('/camera'), 1800);
+    const timer = setTimeout(() => router.replace('/camera'), 900);
     return () => clearTimeout(timer);
   }, [router]);
 

@@ -350,3 +350,24 @@ Treat this as a strong prototype with production-shaped UI sitting on demo-grade
 ---
 
 *Report generated from static/code verification of `/agent/mobile` on 2026-07-25. Performance FPS, VoiceOver, and store form completeness require device / ASC verification.*
+
+---
+
+## Status update (2026-07-25) — fixes landed
+
+Addressed in code (verify on deploy):
+
+- Honest cloud-analysis privacy copy + `/privacy` screen + clear local data
+- `/api/analyze-food` CORS allowlist, IP rate limit, opaque errors, Gemini timeout, optional `ANALYZE_API_SECRET`
+- Security headers in `vercel.json`
+- Scan generation id + AbortController cancel; cancel no longer shows false failure
+- AsyncStorage-backed persistence for native; plate override clears `items`
+- Serving labels, saved-state reset, history delete, camera denied/unavailable UI
+- A11y labels, muted contrast, MacroBar/shutter reduced motion, unified confidence 0.6, faster splash
+
+Still recommended before public launch:
+
+- Set `ANALYZE_API_SECRET` + matching `EXPO_PUBLIC_ANALYZE_TOKEN` in Vercel
+- Confirm Supabase RLS
+- Self-host ORT WASM (CSP still allows jsDelivr)
+- Device QA: RTL cold start, VoiceOver, cancel/rescan spam

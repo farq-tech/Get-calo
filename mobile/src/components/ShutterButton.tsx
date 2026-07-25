@@ -15,6 +15,7 @@ import * as Haptics from 'expo-haptics';
 import { colors } from '@/theme/colors';
 import { motion } from '@/theme/tokens';
 import { useSettingsStore } from '@/hooks/useSettingsStore';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
 
 interface ShutterButtonProps {
   onPress: () => void;
@@ -32,8 +33,13 @@ export function ShutterButton({
   const pulse = useSharedValue(1);
   const ring = useSharedValue(0);
   const hapticsEnabled = useSettingsStore((s) => s.hapticsEnabled);
+  const reducedMotion = useReducedMotion();
 
   useEffect(() => {
+    if (reducedMotion) {
+      pulse.value = 1;
+      return;
+    }
     pulse.value = withRepeat(
       withSequence(
         withTiming(1.05, { duration: 900, easing: Easing.inOut(Easing.ease) }),
@@ -43,7 +49,7 @@ export function ShutterButton({
       false,
     );
     return () => cancelAnimation(pulse);
-  }, [pulse]);
+  }, [pulse, reducedMotion]);
 
   useEffect(() => {
     if (busy) {
