@@ -4,6 +4,7 @@ import { lookupByClassId } from '@/db/nutrition';
 import { analyzeFoodWithAi, AI_MODEL_VERSION, isAiScanEnabled } from '@/inference/aiVision';
 import { isLowConfidence, loadModel, runInference } from '@/inference/yolo';
 import { useScanStore, useSettingsStore } from '@/hooks/useSettingsStore';
+import { saveScanForTraining } from '@/services/trainingCapture';
 import { SCAN_STEP_ORDER, type ScanStepId } from '@/components/ScanProgressOverlay';
 import { motion } from '@/theme/tokens';
 import type { Detection, NutritionItem, ScanResult } from '@/types';
@@ -165,6 +166,7 @@ export function useInference(): UseInferenceReturn {
               usedFallback: false,
             };
             setLastResult(result);
+            void saveScanForTraining({ result, locale, source: 'scan' });
             return { status: 'ok', result };
           } catch (aiErr) {
             if (!active()) return { status: 'cancelled' };
@@ -204,6 +206,7 @@ export function useInference(): UseInferenceReturn {
           usedFallback: !top,
         };
         setLastResult(result);
+        void saveScanForTraining({ result, locale, source: 'scan' });
         return { status: 'ok', result };
       } catch (err) {
         if (!active() || abort.signal.aborted) return { status: 'cancelled' };
