@@ -27,6 +27,8 @@ export default function HistoryScreen() {
   const insets = useSafeAreaInsets();
   const meals = useMealStore((s) => s.meals);
   const dailyGoalKcal = useSettingsStore((s) => s.dailyGoalKcal);
+  const locale = useSettingsStore((s) => s.locale);
+  const localeTag = locale === 'ar' ? 'ar-SA' : 'en-US';
   const [tab, setTab] = useState<HistoryTab>('today');
 
   const todayMeals = useMemo(() => meals.filter((meal) => isToday(meal.savedAt)), [meals]);
@@ -68,7 +70,7 @@ export default function HistoryScreen() {
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>{t('history.todayTotal')}</Text>
             <Text style={styles.totalValue}>
-              {todayTotal.toLocaleString('en-US')}{' '}
+              {todayTotal.toLocaleString(localeTag)}{' '}
               <Text style={styles.kcalUnit}>{t('result.kcal')}</Text>
             </Text>
           </View>
@@ -120,6 +122,11 @@ export default function HistoryScreen() {
             </View>
             <Text style={styles.emptyTitle}>{t('history.emptyTitle')}</Text>
             <Text style={styles.emptyBody}>{t('history.emptyBody')}</Text>
+            <Pressable style={styles.emptyScanHit} onPress={() => router.replace('/camera')}>
+              <LinearGradient colors={[...colors.gradientPrimary]} style={styles.emptyScanBtn}>
+                <Text style={styles.emptyScanText}>{t('history.scanMeal')}</Text>
+              </LinearGradient>
+            </Pressable>
           </View>
         )}
       </ScrollView>
@@ -137,6 +144,8 @@ export default function HistoryScreen() {
 }
 
 function MealRow({ meal }: { meal: SavedMeal }) {
+  const { t } = useTranslation();
+  const removeMeal = useMealStore((s) => s.removeMeal);
   const initial = meal.name.trim().charAt(0).toUpperCase() || '?';
   const time = formatTime(meal.savedAt);
 
@@ -156,6 +165,15 @@ function MealRow({ meal }: { meal: SavedMeal }) {
       <Text style={styles.mealKcal} numberOfLines={1}>
         {Math.round(meal.caloriesKcal)}
       </Text>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t('history.deleteMeal')}
+        onPress={() => removeMeal(meal.id)}
+        hitSlop={8}
+        style={styles.deleteBtn}
+      >
+        <Ionicons name="trash-outline" size={18} color={colors.danger} />
+      </Pressable>
     </View>
   );
 }
@@ -339,6 +357,13 @@ const styles = StyleSheet.create({
     color: colors.accent,
     flexShrink: 0,
   },
+  deleteBtn: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
   emptyWrap: {
     alignItems: 'center',
     paddingHorizontal: 24,
@@ -364,6 +389,23 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: colors.textMuted,
     textAlign: 'center',
+  },
+  emptyScanHit: {
+    marginTop: 20,
+    width: '100%',
+    maxWidth: 260,
+  },
+  emptyScanBtn: {
+    minHeight: 48,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  emptyScanText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.textInverse,
   },
   footer: {
     position: 'absolute',

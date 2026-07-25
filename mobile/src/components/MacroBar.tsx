@@ -8,6 +8,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
+import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { colors } from '@/theme/colors';
 import { motion } from '@/theme/tokens';
 import { typography } from '@/theme/typography';
@@ -29,6 +30,7 @@ export function MacroBar({
   unitLabel,
   delay = 0,
 }: MacroBarProps) {
+  const reducedMotion = useReducedMotion();
   const progress = useSharedValue(0);
   const slide = useSharedValue(24);
   const opacity = useSharedValue(0);
@@ -36,6 +38,13 @@ export function MacroBar({
   const ratio = Math.min(1, Math.max(0, valueG / maxG));
 
   useEffect(() => {
+    if (reducedMotion) {
+      progress.value = ratio;
+      slide.value = 0;
+      opacity.value = 1;
+      return;
+    }
+
     progress.value = 0;
     const ease = Easing.bezier(0.2, 0, 0, 1);
     progress.value = withDelay(
@@ -47,7 +56,7 @@ export function MacroBar({
       withTiming(0, { duration: motion.standard + 80, easing: ease }),
     );
     opacity.value = withDelay(delay, withTiming(1, { duration: motion.standard }));
-  }, [delay, opacity, progress, ratio, slide]);
+  }, [delay, opacity, progress, ratio, reducedMotion, slide]);
 
   const fillStyle = useAnimatedStyle(() => ({
     width: trackW * progress.value,

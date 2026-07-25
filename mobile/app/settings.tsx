@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 
 import { setAppLanguage } from '@/i18n';
+import { useMealStore } from '@/hooks/useMealStore';
 import { useSettingsStore } from '@/hooks/useSettingsStore';
 import { colors } from '@/theme/colors';
 import { typography } from '@/theme/typography';
@@ -30,20 +31,32 @@ export default function SettingsScreen() {
   const cycleDailyGoal = useSettingsStore((s) => s.cycleDailyGoal);
   const shareFeedbackEnabled = useSettingsStore((s) => s.shareFeedbackEnabled);
   const setShareFeedbackEnabled = useSettingsStore((s) => s.setShareFeedbackEnabled);
+  const clearMeals = useMealStore((s) => s.clearMeals);
+  const localeTag = locale === 'ar' ? 'ar-SA' : 'en-US';
 
   const changeLanguage = async (next: LocaleCode) => {
     if (next === locale) return;
     const needsReload = await setAppLanguage(next);
     setLocale(next);
     if (needsReload) {
-      Alert.alert(
-        t('settings.language'),
-        next === 'ar'
-          ? 'Arabic RTL is enabled. Fully restart the app to apply layout direction.'
-          : 'LTR is enabled. Fully restart the app to apply layout direction.',
-        [{ text: t('common.done') }],
-      );
+      Alert.alert(t('settings.rtlRestartTitle'), t('settings.rtlRestartBody'), [
+        { text: t('common.done') },
+      ]);
     }
+  };
+
+  const onClearLocalData = () => {
+    Alert.alert(t('settings.clearDataConfirmTitle'), t('settings.clearDataConfirmBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('settings.clearData'),
+        style: 'destructive',
+        onPress: () => {
+          clearMeals();
+          Alert.alert(t('settings.clearDataDone'));
+        },
+      },
+    ]);
   };
 
   return (
@@ -84,7 +97,7 @@ export default function SettingsScreen() {
               <Text style={styles.rowSub}>{t('settings.tapToChangeGoal')}</Text>
             </View>
             <Text style={[styles.rowValue, styles.rowValueAccent]}>
-              {dailyGoalKcal.toLocaleString('en-US')} {t('result.kcal')}
+              {dailyGoalKcal.toLocaleString(localeTag)} {t('result.kcal')}
             </Text>
           </Pressable>
         </View>
@@ -131,6 +144,34 @@ export default function SettingsScreen() {
           </Pressable>
         </View>
 
+        <View style={[styles.card, styles.linkCard]}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push('/privacy')}
+            style={[styles.row, styles.lastRow]}
+          >
+            <Text style={styles.rowLabel}>{t('settings.privacyPolicy')}</Text>
+            <Ionicons
+              name={I18nManager.isRTL ? 'chevron-back' : 'chevron-forward'}
+              size={16}
+              color={colors.textMuted}
+            />
+          </Pressable>
+        </View>
+
+        <View style={[styles.card, styles.linkCard]}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={onClearLocalData}
+            style={[styles.row, styles.lastRow]}
+          >
+            <View style={styles.rowTextWrap}>
+              <Text style={[styles.rowLabel, styles.dangerLabel]}>{t('settings.clearData')}</Text>
+              <Text style={styles.rowSub}>{t('settings.clearDataSub')}</Text>
+            </View>
+          </Pressable>
+        </View>
+
         <View style={styles.footer}>
           <Text style={styles.footerMeta}>{t('settings.versionLabel')}</Text>
           <Text style={styles.footerCredit}>{t('madeWithLove')}</Text>
@@ -142,25 +183,6 @@ export default function SettingsScreen() {
 
 function SectionTitle({ label, first = false }: { label: string; first?: boolean }) {
   return <Text style={[styles.section, first && styles.sectionFirst]}>{label}</Text>;
-}
-
-function SettingsRow({
-  label,
-  value,
-  accent = false,
-  last = false,
-}: {
-  label: string;
-  value: string;
-  accent?: boolean;
-  last?: boolean;
-}) {
-  return (
-    <View style={[styles.row, last && styles.lastRow]}>
-      <Text style={styles.rowLabel}>{label}</Text>
-      <Text style={[styles.rowValue, accent && styles.rowValueAccent]}>{value}</Text>
-    </View>
-  );
 }
 
 function LanguageRow({
@@ -239,6 +261,9 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     overflow: 'hidden',
   },
+  linkCard: {
+    marginTop: 12,
+  },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -256,6 +281,9 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.text,
     flexShrink: 1,
+  },
+  dangerLabel: {
+    color: colors.danger,
   },
   rowValue: {
     fontSize: 14,

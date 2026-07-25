@@ -105,13 +105,16 @@ export default function CameraScreen() {
       setLocalError(null);
       resetError();
       setCapturedUri(uri);
-      const result = await scan(uri);
-      if (result) {
-        router.push('/result');
-      } else {
-        setCapturedUri(null);
-        setLocalError(t('camera.scanFailed'));
+      const outcome = await scan(uri);
+      if (outcome.status === 'ok') {
+        router.replace('/result');
+        return;
       }
+      setCapturedUri(null);
+      if (outcome.status === 'error') {
+        setLocalError(outcome.message || t('camera.scanFailed'));
+      }
+      // cancelled → silent
     },
     [resetError, router, scan, t],
   );
@@ -229,38 +232,84 @@ export default function CameraScreen() {
             <View style={styles.permIcon}>
               <Ionicons name="camera-outline" size={32} color={colors.accent} />
             </View>
-            <Text style={styles.permTitle}>{t('camera.permissionTitle')}</Text>
-            <Text style={styles.permBody}>{t('camera.permissionBody')}</Text>
-            <View style={styles.privacyPill}>
-              <Ionicons name="shield-checkmark" size={14} color={colors.success} />
-              <Text style={styles.privacyPillText}>{t('camera.permissionPrivacy')}</Text>
-            </View>
-            <Pressable
-              style={styles.permBtn}
-              onPress={() => void webCamera.start()}
-              disabled={webCamera.status === 'requesting'}
-            >
-              <LinearGradient
-                colors={[...colors.gradientPrimary]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.permBtnGrad}
-              >
-                <Text style={styles.permBtnText}>
-                  {webCamera.status === 'requesting'
-                    ? t('common.loading')
-                    : t('camera.grantPermission')}
-                </Text>
-              </LinearGradient>
-            </Pressable>
-            <Pressable onPress={onWebUploadFallback} style={styles.notNow}>
-              <Text style={styles.webFallbackAction}>{t('camera.uploadPhoto')}</Text>
-            </Pressable>
+            {webCamera.status === 'denied' ? (
+              <>
+                <Text style={styles.permTitle}>{t('camera.permissionDeniedTitle')}</Text>
+                <Text style={styles.permBody}>{t('camera.permissionDeniedBody')}</Text>
+                <View style={styles.privacyPill}>
+                  <Ionicons name="shield-checkmark" size={14} color={colors.success} />
+                  <Text style={styles.privacyPillText}>{t('camera.permissionPrivacy')}</Text>
+                </View>
+                <Pressable style={styles.permBtn} onPress={onWebUploadFallback}>
+                  <LinearGradient
+                    colors={[...colors.gradientPrimary]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.permBtnGrad}
+                  >
+                    <Text style={styles.permBtnText}>{t('camera.uploadPhoto')}</Text>
+                  </LinearGradient>
+                </Pressable>
+              </>
+            ) : webCamera.status === 'unavailable' ? (
+              <>
+                <Text style={styles.permTitle}>{t('camera.permissionUnavailableTitle')}</Text>
+                <Text style={styles.permBody}>{t('camera.permissionUnavailableBody')}</Text>
+                <View style={styles.privacyPill}>
+                  <Ionicons name="shield-checkmark" size={14} color={colors.success} />
+                  <Text style={styles.privacyPillText}>{t('camera.permissionPrivacy')}</Text>
+                </View>
+                <Pressable style={styles.permBtn} onPress={onWebUploadFallback}>
+                  <LinearGradient
+                    colors={[...colors.gradientPrimary]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.permBtnGrad}
+                  >
+                    <Text style={styles.permBtnText}>{t('camera.uploadPhoto')}</Text>
+                  </LinearGradient>
+                </Pressable>
+              </>
+            ) : (
+              <>
+                <Text style={styles.permTitle}>{t('camera.permissionTitle')}</Text>
+                <Text style={styles.permBody}>{t('camera.permissionBody')}</Text>
+                <View style={styles.privacyPill}>
+                  <Ionicons name="shield-checkmark" size={14} color={colors.success} />
+                  <Text style={styles.privacyPillText}>{t('camera.permissionPrivacy')}</Text>
+                </View>
+                <Pressable
+                  style={styles.permBtn}
+                  onPress={() => void webCamera.start()}
+                  disabled={webCamera.status === 'requesting'}
+                >
+                  <LinearGradient
+                    colors={[...colors.gradientPrimary]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.permBtnGrad}
+                  >
+                    <Text style={styles.permBtnText}>
+                      {webCamera.status === 'requesting'
+                        ? t('common.loading')
+                        : t('camera.grantPermission')}
+                    </Text>
+                  </LinearGradient>
+                </Pressable>
+                <Pressable onPress={onWebUploadFallback} style={styles.notNow}>
+                  <Text style={styles.webFallbackAction}>{t('camera.uploadPhoto')}</Text>
+                </Pressable>
+              </>
+            )}
           </View>
         ) : (
           <View style={styles.webUi} pointerEvents="box-none">
             <View style={[styles.topChromeFlex, { paddingTop: Math.max(insets.top, 12) + 8 }]}>
-              <Pressable style={styles.roundBtn} onPress={() => router.push('/history')}>
+              <Pressable
+                style={styles.roundBtn}
+                onPress={() => router.push('/history')}
+                accessibilityLabel={t('camera.history')}
+              >
                 <View style={styles.roundBtnBlur}>
                   <Ionicons name="time-outline" size={20} color={colors.text} />
                 </View>
@@ -268,7 +317,11 @@ export default function CameraScreen() {
               <View style={styles.hintPill}>
                 <Text style={styles.hint}>{t('camera.holdSteady')}</Text>
               </View>
-              <Pressable style={styles.roundBtn} onPress={() => router.push('/settings')}>
+              <Pressable
+                style={styles.roundBtn}
+                onPress={() => router.push('/settings')}
+                accessibilityLabel={t('camera.settings')}
+              >
                 <View style={styles.roundBtnBlur}>
                   <Ionicons name="settings-outline" size={20} color={colors.text} />
                 </View>
@@ -290,7 +343,11 @@ export default function CameraScreen() {
                   <Text style={styles.sideLabel}>{t('camera.catalogSearch')}</Text>
                 </Pressable>
                 <View style={styles.shutterWrap}>
-                  <ShutterButton onPress={() => void onWebCapture()} busy={scanning} />
+                  <ShutterButton
+                    onPress={() => void onWebCapture()}
+                    busy={scanning}
+                    accessibilityLabel={t('camera.captureMeal')}
+                  />
                 </View>
                 <Pressable
                   style={styles.sideBtn}
@@ -378,7 +435,11 @@ export default function CameraScreen() {
       />
 
       <View style={[styles.topChrome, { top: insets.top + 17 }]}>
-        <Pressable style={styles.roundBtn} onPress={() => router.push('/history')}>
+        <Pressable
+          style={styles.roundBtn}
+          onPress={() => router.push('/history')}
+          accessibilityLabel={t('camera.history')}
+        >
           <BlurView intensity={40} tint="dark" style={styles.roundBtnBlur}>
             <Ionicons name="time-outline" size={20} color={colors.text} />
           </BlurView>
@@ -386,7 +447,11 @@ export default function CameraScreen() {
         <View style={styles.hintPill}>
           <Text style={styles.hint}>{t('camera.holdSteady')}</Text>
         </View>
-        <Pressable style={styles.roundBtn} onPress={() => router.push('/settings')}>
+        <Pressable
+          style={styles.roundBtn}
+          onPress={() => router.push('/settings')}
+          accessibilityLabel={t('camera.settings')}
+        >
           <BlurView intensity={40} tint="dark" style={styles.roundBtnBlur}>
             <Ionicons name="settings-outline" size={20} color={colors.text} />
           </BlurView>
@@ -407,11 +472,16 @@ export default function CameraScreen() {
           <Text style={styles.sideLabel}>{t('camera.catalogSearch')}</Text>
         </Pressable>
         <View style={styles.shutterWrap}>
-          <ShutterButton onPress={() => void onCapture()} busy={scanning} />
+          <ShutterButton
+            onPress={() => void onCapture()}
+            busy={scanning}
+            accessibilityLabel={t('camera.captureMeal')}
+          />
         </View>
         <Pressable
           style={[styles.sideBtn, flashOn && styles.sideBtnActive]}
           onPress={() => setFlashOn((value) => !value)}
+          accessibilityLabel={t('camera.flash')}
         >
           <Ionicons
             name="flash-outline"

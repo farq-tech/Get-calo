@@ -28,7 +28,7 @@ export const colors = {
   // Text — dark surfaces
   text: '#F2F7F5',
   textSecondary: '#A8B8B2',
-  textMuted: '#6B7C75',
+  textMuted: '#8FA39B',
   textInverse: '#0A0E0D',
 
   // Light mode — analysis / result surfaces only

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
-import { createJSONStorage, persist } from 'zustand/middleware';
-import { Platform } from 'react-native';
+import { persist } from 'zustand/middleware';
+
+import { createAppJSONStorage } from '@/storage/persistStorage';
 
 export interface SavedMeal {
   id: string;
@@ -18,23 +19,9 @@ export interface SavedMeal {
 interface MealState {
   meals: SavedMeal[];
   addMeal: (meal: Omit<SavedMeal, 'id' | 'savedAt'>) => SavedMeal;
+  removeMeal: (id: string) => void;
   clearMeals: () => void;
 }
-
-const webStorage = {
-  getItem: (name: string) => {
-    if (typeof localStorage === 'undefined') return null;
-    return localStorage.getItem(name);
-  },
-  setItem: (name: string, value: string) => {
-    if (typeof localStorage === 'undefined') return;
-    localStorage.setItem(name, value);
-  },
-  removeItem: (name: string) => {
-    if (typeof localStorage === 'undefined') return;
-    localStorage.removeItem(name);
-  },
-};
 
 export const useMealStore = create<MealState>()(
   persist(
@@ -49,17 +36,15 @@ export const useMealStore = create<MealState>()(
         set((state) => ({ meals: [saved, ...state.meals].slice(0, 200) }));
         return saved;
       },
+      removeMeal: (id) => set((state) => ({ meals: state.meals.filter((m) => m.id !== id) })),
       clearMeals: () => set({ meals: [] }),
     }),
     {
       name: 'calora-meals-v1',
-      storage: createJSONStorage(() =>
-        Platform.OS === 'web' ? webStorage : webStorage,
-      ),
+      storage: createAppJSONStorage(),
       partialize: (state) => ({
         meals: state.meals.map((m) => ({
           ...m,
-          // Don't persist huge data URLs
           imageUri: m.imageUri?.startsWith('data:') ? undefined : m.imageUri,
         })),
       }),

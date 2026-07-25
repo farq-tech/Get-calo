@@ -20,9 +20,15 @@ interface ShutterButtonProps {
   onPress: () => void;
   disabled?: boolean;
   busy?: boolean;
+  accessibilityLabel?: string;
 }
 
-export function ShutterButton({ onPress, disabled, busy }: ShutterButtonProps) {
+export function ShutterButton({
+  onPress,
+  disabled,
+  busy,
+  accessibilityLabel = 'Capture meal',
+}: ShutterButtonProps) {
   const pulse = useSharedValue(1);
   const ring = useSharedValue(0);
   const hapticsEnabled = useSettingsStore((s) => s.hapticsEnabled);
@@ -68,7 +74,7 @@ export function ShutterButton({ onPress, disabled, busy }: ShutterButtonProps) {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel="Capture meal"
+      accessibilityLabel={accessibilityLabel}
       onPress={handlePress}
       disabled={disabled || busy}
       style={({ pressed }) => [styles.hit, pressed && styles.pressed]}

@@ -112,6 +112,7 @@ export default function RootLayout() {
         <Stack.Screen name="correct" options={{ presentation: 'modal' }} />
         <Stack.Screen name="history" />
         <Stack.Screen name="settings" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="privacy" options={{ presentation: 'modal' }} />
       </Stack>
     </GestureHandlerRootView>
   );

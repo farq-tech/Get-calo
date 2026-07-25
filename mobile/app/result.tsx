@@ -22,10 +22,12 @@ import { useScanStore, useSettingsStore } from '@/hooks/useSettingsStore';
 import { colors } from '@/theme/colors';
 import { motion, radius, spacing } from '@/theme/tokens';
 import { typography } from '@/theme/typography';
+import { LOW_CONFIDENCE_THRESHOLD } from '@/types';
 
 import demoMeal from '../assets/samples/demo-meal.jpg';
 
 const SERVING_FACTORS = [1, 1.33, 1.9];
+
 
 export default function ResultScreen() {
   const { t } = useTranslation();
@@ -78,7 +80,15 @@ export default function ResultScreen() {
 
   const servingOptions = useMemo(() => {
     const base = result?.nutrition?.servingSizeG ?? 240;
-    return SERVING_FACTORS.map((f) => `${Math.round(base * f)}${t('result.grams')}`);
+    const labels = [
+      t('result.servingHalf'),
+      t('result.servingRegular'),
+      t('result.servingLarge'),
+    ];
+    return SERVING_FACTORS.map((f, i) => ({
+      label: labels[i] ?? '',
+      grams: `${Math.round(base * f)}${t('result.grams')}`,
+    }));
   }, [result, t]);
 
   const confidenceLabel = useMemo(() => {
@@ -88,12 +98,14 @@ export default function ResultScreen() {
     return t('result.confidenceLow');
   }, [result, t]);
 
-  const lowConfidence = Boolean(result?.lowConfidence || (result && result.confidence < 0.6));
+  const lowConfidence = Boolean(
+    result?.lowConfidence || (result && result.confidence < LOW_CONFIDENCE_THRESHOLD),
+  );
   const noFood = Boolean(result && !result.nutrition);
 
   useEffect(() => {
     setSaved(false);
-  }, [result?.inferredAt, result?.imageUri]);
+  }, [servingIdx, result?.inferredAt]);
 
   useEffect(() => {
     return () => {
@@ -224,9 +236,9 @@ export default function ResultScreen() {
         <View style={styles.servingBox}>
           <Text style={styles.servingTitle}>{t('result.servingSize')}</Text>
           <View style={styles.servingRow}>
-            {servingOptions.map((label, i) => (
+            {servingOptions.map((option, i) => (
               <Pressable
-                key={label}
+                key={option.label}
                 onPress={() => setServingIdx(i)}
                 style={[styles.servingChip, servingIdx === i && styles.servingChipActive]}
               >
@@ -236,7 +248,15 @@ export default function ResultScreen() {
                     servingIdx === i && styles.servingChipTextActive,
                   ]}
                 >
-                  {label}
+                  {option.label}
+                </Text>
+                <Text
+                  style={[
+                    styles.servingChipGrams,
+                    servingIdx === i && styles.servingChipGramsActive,
+                  ]}
+                >
+                  {option.grams}
                 </Text>
               </Pressable>
             ))}
@@ -400,10 +420,19 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: colors.textSecondary,
-    writingDirection: 'ltr',
   },
   servingChipTextActive: {
     color: colors.accent,
+  },
+  servingChipGrams: {
+    marginTop: 2,
+    fontSize: 11,
+    fontWeight: '500',
+    color: colors.textMuted,
+    writingDirection: 'ltr',
+  },
+  servingChipGramsActive: {
+    color: colors.accentMuted,
   },
   changeRow: {
     marginTop: 14,
