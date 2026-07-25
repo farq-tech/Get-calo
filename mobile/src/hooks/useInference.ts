@@ -12,9 +12,9 @@ function wait(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-/** Time until Get Calo overlay begins showing analysis steps (§3.4). */
+/** Time until Get Calo overlay begins showing analysis steps. */
 const ENGINE_TYPE_CHARS = 'Get Calo'.length;
-const SATTAM_INTRO_MS =
+const INTRO_MS =
   motion.sattamStartType + ENGINE_TYPE_CHARS * motion.sattamCharMs + motion.sattamStepsDelay;
 
 function isDemoUri(uri: string) {
@@ -36,12 +36,17 @@ const DEMO_NUTRITION: NutritionItem = {
   category: 'meal',
 };
 
+export type ScanOutcome =
+  | { status: 'ok'; result: ScanResult }
+  | { status: 'cancelled' }
+  | { status: 'error'; message: string };
+
 export interface UseInferenceReturn {
   scanning: boolean;
   scanStep: ScanStepId | null;
   previewUri: string | null;
   error: string | null;
-  scan: (imageUri: string) => Promise<ScanResult | null>;
+  scan: (imageUri: string) => Promise<ScanOutcome>;
   cancelScan: () => void;
   resetError: () => void;
 }
@@ -51,22 +56,25 @@ export function useInference(): UseInferenceReturn {
   const [scanStep, setScanStep] = useState<ScanStepId | null>(null);
   const [previewUri, setPreviewUri] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const cancelledRef = useRef(false);
+  const scanIdRef = useRef(0);
+  const abortRef = useRef<AbortController | null>(null);
   const threshold = useSettingsStore((s) => s.confidenceThreshold);
   const locale = useSettingsStore((s) => s.locale);
   const setLastResult = useScanStore((s) => s.setLastResult);
 
   const cancelScan = useCallback(() => {
-    cancelledRef.current = true;
+    abortRef.current?.abort();
+    abortRef.current = null;
+    scanIdRef.current += 1;
     setScanning(false);
     setScanStep(null);
     setPreviewUri(null);
   }, []);
 
-  const advanceSteps = useCallback(async (until: ScanStepId) => {
+  const advanceSteps = useCallback(async (until: ScanStepId, scanId: number) => {
     const target = SCAN_STEP_ORDER.indexOf(until);
     for (let i = 0; i <= target; i++) {
-      if (cancelledRef.current) return;
+      if (scanId !== scanIdRef.current) return;
       const nextStep = SCAN_STEP_ORDER[i];
       if (!nextStep) return;
       setScanStep(nextStep);
@@ -75,20 +83,25 @@ export function useInference(): UseInferenceReturn {
   }, []);
 
   const scan = useCallback(
-    async (imageUri: string): Promise<ScanResult | null> => {
-      cancelledRef.current = false;
+    async (imageUri: string): Promise<ScanOutcome> => {
+      const scanId = ++scanIdRef.current;
+      const abort = new AbortController();
+      abortRef.current = abort;
+
       setScanning(true);
       setPreviewUri(imageUri);
       setError(null);
+
+      const active = () => scanId === scanIdRef.current;
+
       try {
         setScanStep('recognize');
-        await wait(SATTAM_INTRO_MS);
-        if (cancelledRef.current) return null;
+        await wait(INTRO_MS);
+        if (!active()) return { status: 'cancelled' };
 
-        // Built-in demo path — always returns a complete nutrition result.
         if (isDemoUri(imageUri)) {
-          await advanceSteps('finalize');
-          if (cancelledRef.current) return null;
+          await advanceSteps('finalize', scanId);
+          if (!active()) return { status: 'cancelled' };
           const nutrition = DEMO_NUTRITION;
           const detection: Detection = {
             classId: nutrition.classId ?? -100,
@@ -108,21 +121,18 @@ export function useInference(): UseInferenceReturn {
             usedFallback: false,
           };
           setLastResult(result);
-          return result;
+          return { status: 'ok', result };
         }
 
         if (isAiScanEnabled()) {
           try {
-            const progress = (async () => {
-              await advanceSteps('portion');
-            })();
-
-            const ai = await analyzeFoodWithAi(imageUri, locale);
+            const progress = advanceSteps('portion', scanId);
+            const ai = await analyzeFoodWithAi(imageUri, locale, abort.signal);
             await progress;
-            if (cancelledRef.current) return null;
+            if (!active()) return { status: 'cancelled' };
 
-            await advanceSteps('finalize');
-            if (cancelledRef.current) return null;
+            await advanceSteps('finalize', scanId);
+            if (!active()) return { status: 'cancelled' };
 
             const isUnknown =
               /unknown/i.test(ai.nameEn) ||
@@ -155,22 +165,29 @@ export function useInference(): UseInferenceReturn {
               usedFallback: false,
             };
             setLastResult(result);
-            return result;
+            return { status: 'ok', result };
           } catch (aiErr) {
-            console.warn('[calora] cloud scan failed, falling back on-device', aiErr);
+            if (!active()) return { status: 'cancelled' };
+            if (abort.signal.aborted) return { status: 'cancelled' };
+            console.warn('[get-calo] cloud scan failed, falling back on-device', aiErr);
+            setError(
+              aiErr instanceof Error
+                ? aiErr.message
+                : 'Cloud scan unavailable — trying on-device',
+            );
           }
         }
 
         await loadModel();
-        if (cancelledRef.current) return null;
+        if (!active()) return { status: 'cancelled' };
         setScanStep('ingredients');
         const { detections, modelVersion } = await runInference(imageUri, {
           confidenceThreshold: threshold,
         });
-        if (cancelledRef.current) return null;
+        if (!active()) return { status: 'cancelled' };
 
-        await advanceSteps('finalize');
-        if (cancelledRef.current) return null;
+        await advanceSteps('finalize', scanId);
+        if (!active()) return { status: 'cancelled' };
 
         const top = detections[0] ?? null;
         const nutrition = top ? await lookupByClassId(top.classId) : null;
@@ -187,16 +204,18 @@ export function useInference(): UseInferenceReturn {
           usedFallback: !top,
         };
         setLastResult(result);
-        return result;
+        return { status: 'ok', result };
       } catch (err) {
+        if (!active() || abort.signal.aborted) return { status: 'cancelled' };
         const message = err instanceof Error ? err.message : 'Scan failed';
         setError(message);
-        return null;
+        return { status: 'error', message };
       } finally {
-        if (!cancelledRef.current) {
+        if (active()) {
           setScanning(false);
           setScanStep(null);
           setPreviewUri(null);
+          abortRef.current = null;
         }
       }
     },

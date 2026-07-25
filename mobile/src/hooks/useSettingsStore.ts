@@ -1,27 +1,12 @@
 import { create } from 'zustand';
-import { createJSONStorage, persist } from 'zustand/middleware';
-import { Platform } from 'react-native';
+import { persist } from 'zustand/middleware';
 
 import type { LocaleCode, ModelInfo, ScanResult } from '@/types';
 import { LOW_CONFIDENCE_THRESHOLD } from '@/types';
 import { detectDeviceLocale } from '@/i18n';
+import { createAppJSONStorage } from '@/storage/persistStorage';
 
 const GOAL_OPTIONS = [1500, 1800, 2000, 2200, 2500] as const;
-
-const webStorage = {
-  getItem: (name: string) => {
-    if (typeof localStorage === 'undefined') return null;
-    return localStorage.getItem(name);
-  },
-  setItem: (name: string, value: string) => {
-    if (typeof localStorage === 'undefined') return;
-    localStorage.setItem(name, value);
-  },
-  removeItem: (name: string) => {
-    if (typeof localStorage === 'undefined') return;
-    localStorage.removeItem(name);
-  },
-};
 
 interface SettingsState {
   locale: LocaleCode;
@@ -61,15 +46,16 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: 'calora-settings-v1',
-      storage: createJSONStorage(() =>
-        Platform.OS === 'web' ? webStorage : webStorage,
-      ),
+      storage: createAppJSONStorage(),
       partialize: (state) => ({
         locale: state.locale,
         shareFeedbackEnabled: state.shareFeedbackEnabled,
         dailyGoalKcal: state.dailyGoalKcal,
         hapticsEnabled: state.hapticsEnabled,
       }),
+      onRehydrateStorage: () => (state) => {
+        state?.setHydrated(true);
+      },
     },
   ),
 );
@@ -100,6 +86,7 @@ export const useScanStore = create<ScanState>((set, get) => ({
           detections: [detection],
           topDetection: detection,
           nutrition,
+          items: [nutrition],
           confidence: 1,
           lowConfidence: false,
           modelVersion: 'manual-1.0',
@@ -113,12 +100,21 @@ export const useScanStore = create<ScanState>((set, get) => ({
       lastResult: {
         ...current,
         nutrition,
+        items: [nutrition],
         topDetection: {
           classId: nutrition.classId,
           confidence: 1,
           bbox: current.topDetection?.bbox ?? { x: 0.2, y: 0.2, width: 0.6, height: 0.6 },
           label: nutrition.nameEn,
         },
+        detections: [
+          {
+            classId: nutrition.classId,
+            confidence: 1,
+            bbox: current.topDetection?.bbox ?? { x: 0.2, y: 0.2, width: 0.6, height: 0.6 },
+            label: nutrition.nameEn,
+          },
+        ],
         confidence: 1,
         lowConfidence: false,
         usedFallback: true,

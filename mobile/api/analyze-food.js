@@ -1,10 +1,12 @@
 /**
- * Calora food vision endpoint (Vercel Serverless, CommonJS).
+ * Get Calo food vision endpoint (Vercel Serverless).
  * POST { imageBase64, mimeType?, locale? } → food + nutrition JSON
- * Supports multi-item plates: returns `items[]` + plate totals.
+ *
+ * Hardening: CORS allowlist, optional shared token, IP rate limit,
+ * mime/locale validation, Gemini timeout, opaque client errors.
  */
 
-const SYSTEM_PROMPT = `You are Calora, an expert nutrition assistant for Gulf / Saudi everyday food, drinks, snacks, and grocery products.
+const SYSTEM_PROMPT = `You are Get Calo, an expert nutrition assistant for Gulf / Saudi everyday food, drinks, snacks, and grocery products.
 
 Analyze the photo and identify EVERY distinct edible item visible (e.g. rice, grilled chicken, salad, sauce, drink). For a single packaged product, return one item.
 
@@ -41,13 +43,90 @@ Rules:
 - confidence >= 0.75 when clearly identifiable.
 - Keep notes_en short. Do not mention models or vendors.`;
 
-function send(res, status, body) {
+const ALLOWED_MIMES = new Set(['image/jpeg', 'image/jpg', 'image/png', 'image/webp']);
+const RATE_WINDOW_MS = 15 * 60 * 1000;
+const RATE_MAX = 30;
+const GEMINI_TIMEOUT_MS = 28000;
+
+/** Best-effort in-memory rate limit (per serverless isolate). */
+const rateBuckets = globalThis.__getCaloRateBuckets || new Map();
+globalThis.__getCaloRateBuckets = rateBuckets;
+
+function defaultOrigins() {
+  return [
+    'https://get-calo-web.vercel.app',
+    'http://localhost:8081',
+    'http://localhost:19006',
+    'http://127.0.0.1:8081',
+    'http://127.0.0.1:19006',
+  ];
+}
+
+function allowedOrigins() {
+  const raw = process.env.ALLOWED_ORIGINS || '';
+  const list = raw
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return list.length ? list : defaultOrigins();
+}
+
+function corsOrigin(req) {
+  const origin = String(req.headers.origin || '');
+  const allow = allowedOrigins();
+  if (origin && allow.includes(origin)) return origin;
+  // Same-origin / non-browser clients: no ACAO reflection of *
+  if (!origin) return allow[0];
+  return null;
+}
+
+function applyCors(req, res) {
+  const origin = corsOrigin(req);
+  if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary', 'Origin');
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Get-Calo-Token');
+  res.setHeader('Access-Control-Max-Age', '86400');
+  return Boolean(origin) || !req.headers.origin;
+}
+
+function send(req, res, status, body) {
   res.statusCode = status;
   res.setHeader('Content-Type', 'application/json');
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  applyCors(req, res);
   res.end(JSON.stringify(body));
+}
+
+function clientIp(req) {
+  const xf = String(req.headers['x-forwarded-for'] || '')
+    .split(',')[0]
+    .trim();
+  return xf || req.socket?.remoteAddress || 'unknown';
+}
+
+function rateLimit(ip) {
+  const now = Date.now();
+  let bucket = rateBuckets.get(ip);
+  if (!bucket || now - bucket.start > RATE_WINDOW_MS) {
+    bucket = { start: now, count: 0 };
+    rateBuckets.set(ip, bucket);
+  }
+  bucket.count += 1;
+  return bucket.count <= RATE_MAX;
+}
+
+function authorize(req) {
+  const secret = process.env.ANALYZE_API_SECRET || process.env.GET_CALO_ANALYZE_SECRET;
+  if (!secret) {
+    // Secret optional for gradual rollout; CORS + rate limit still apply.
+    return true;
+  }
+  const header = String(req.headers['x-get-calo-token'] || '');
+  const auth = String(req.headers.authorization || '');
+  const bearer = auth.toLowerCase().startsWith('bearer ') ? auth.slice(7).trim() : '';
+  return header === secret || bearer === secret;
 }
 
 function stripCodeFence(text) {
@@ -71,7 +150,17 @@ function readBody(req) {
       return;
     }
     const chunks = [];
-    req.on('data', (c) => chunks.push(c));
+    let size = 0;
+    const MAX = 6_000_000;
+    req.on('data', (c) => {
+      size += c.length;
+      if (size > MAX) {
+        reject(Object.assign(new Error('Body too large'), { status: 413 }));
+        req.destroy();
+        return;
+      }
+      chunks.push(c);
+    });
     req.on('end', () => {
       try {
         const raw = Buffer.concat(chunks).toString('utf8');
@@ -103,7 +192,6 @@ function normalizeItem(raw) {
 function normalizeResult(parsed, model) {
   let items = Array.isArray(parsed.items) ? parsed.items.map(normalizeItem) : [];
 
-  // Backward-compatible single-object responses
   if (items.length === 0 && (parsed.name_en || parsed.calories_kcal != null)) {
     items = [normalizeItem(parsed)];
   }
@@ -122,7 +210,6 @@ function normalizeResult(parsed, model) {
     ];
   }
 
-  // Cap to 6 items
   items = items.slice(0, 6);
 
   const totals = items.reduce(
@@ -143,9 +230,7 @@ function normalizeResult(parsed, model) {
     items.reduce((sum, item) => sum + item.confidence, 0) / Math.max(items.length, 1);
 
   return {
-    name_en: isPlate
-      ? `Plate · ${items.length} items`
-      : primary.name_en,
+    name_en: isPlate ? `Plate · ${items.length} items` : primary.name_en,
     name_ar: isPlate
       ? `\u0635\u062D\u0646 \u00B7 ${items.length} \u0623\u0635\u0646\u0627\u0641`
       : primary.name_ar,
@@ -168,13 +253,13 @@ function normalizeResult(parsed, model) {
 async function callGemini(imageBase64, mimeType, locale) {
   const key = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   if (!key) {
-    const err = new Error('GEMINI_API_KEY is not configured');
+    const err = new Error('Scan service unavailable');
     err.status = 503;
     throw err;
   }
 
   const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
   const payload = {
     contents: [
@@ -184,7 +269,7 @@ async function callGemini(imageBase64, mimeType, locale) {
           { text: `${SYSTEM_PROMPT}\n\nUser locale preference: ${locale}` },
           {
             inlineData: {
-              mimeType: mimeType || 'image/jpeg',
+              mimeType,
               data: String(imageBase64).replace(/^data:[^;]+;base64,/, ''),
             },
           },
@@ -199,30 +284,51 @@ async function callGemini(imageBase64, mimeType, locale) {
     },
   };
 
-  const resp = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
+  let resp;
+  try {
+    resp = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': key,
+      },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
+  } catch (err) {
+    clearTimeout(timer);
+    if (err && err.name === 'AbortError') {
+      const timeoutErr = new Error('Scan timed out');
+      timeoutErr.status = 504;
+      throw timeoutErr;
+    }
+    throw err;
+  }
+  clearTimeout(timer);
+
   const raw = await resp.text();
   if (!resp.ok) {
-    let message = `Gemini error ${resp.status}`;
-    try {
-      message = JSON.parse(raw)?.error?.message || message;
-    } catch (_) {
-      /* ignore */
-    }
-    const err = new Error(message);
+    const err = new Error(resp.status === 429 ? 'Too many requests' : 'Scan failed');
     err.status = resp.status === 429 ? 429 : 502;
     throw err;
   }
 
-  const data = JSON.parse(raw);
+  let data;
+  try {
+    data = JSON.parse(raw);
+  } catch (_) {
+    const err = new Error('Scan failed');
+    err.status = 502;
+    throw err;
+  }
+
   const text = (data?.candidates?.[0]?.content?.parts || [])
     .map((p) => p.text || '')
     .join('');
   if (!text) {
-    const err = new Error('Empty Gemini response');
+    const err = new Error('Scan failed');
     err.status = 502;
     throw err;
   }
@@ -231,35 +337,67 @@ async function callGemini(imageBase64, mimeType, locale) {
   return normalizeResult(parsed, model);
 }
 
+function publicError(err) {
+  const status = err && err.status ? Number(err.status) : 500;
+  if (status === 429) return { status, error: 'Too many requests — try again later' };
+  if (status === 413) return { status, error: 'Image too large' };
+  if (status === 400) return { status, error: 'Invalid request' };
+  if (status === 401 || status === 403) return { status, error: 'Unauthorized' };
+  if (status === 504) return { status, error: 'Scan timed out — try again' };
+  if (status === 503) return { status, error: 'Scan service unavailable' };
+  return { status: status >= 400 && status < 600 ? status : 500, error: 'Scan failed' };
+}
+
 module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') {
-    return send(res, 204, {});
+    if (!applyCors(req, res)) {
+      res.statusCode = 403;
+      res.end('');
+      return;
+    }
+    res.statusCode = 204;
+    res.end('');
+    return;
   }
+
   if (req.method !== 'POST') {
-    return send(res, 405, { error: 'Method not allowed' });
+    return send(req, res, 405, { error: 'Method not allowed' });
+  }
+
+  if (!applyCors(req, res) && req.headers.origin) {
+    return send(req, res, 403, { error: 'Origin not allowed' });
+  }
+
+  if (!authorize(req)) {
+    return send(req, res, 401, { error: 'Unauthorized' });
+  }
+
+  const ip = clientIp(req);
+  if (!rateLimit(ip)) {
+    return send(req, res, 429, { error: 'Too many requests — try again later' });
   }
 
   try {
     const body = await readBody(req);
     const imageBase64 = String(body.imageBase64 || '').trim();
     if (!imageBase64 || imageBase64.length < 64) {
-      return send(res, 400, { error: 'imageBase64 is required' });
+      return send(req, res, 400, { error: 'Invalid request' });
     }
     if (imageBase64.length > 5_500_000) {
-      return send(res, 413, { error: 'Image too large' });
+      return send(req, res, 413, { error: 'Image too large' });
     }
 
-    const result = await callGemini(
-      imageBase64,
-      body.mimeType || 'image/jpeg',
-      body.locale || 'en',
-    );
-    return send(res, 200, { ok: true, result });
+    let mimeType = String(body.mimeType || 'image/jpeg').toLowerCase();
+    if (mimeType === 'image/jpg') mimeType = 'image/jpeg';
+    if (!ALLOWED_MIMES.has(mimeType)) {
+      return send(req, res, 400, { error: 'Invalid request' });
+    }
+
+    const locale = body.locale === 'ar' ? 'ar' : 'en';
+    const result = await callGemini(imageBase64, mimeType, locale);
+    return send(req, res, 200, { ok: true, result });
   } catch (err) {
-    const status = err && err.status ? Number(err.status) : 500;
-    return send(res, status || 500, {
-      ok: false,
-      error: err instanceof Error ? err.message : 'Analyze failed',
-    });
+    const mapped = publicError(err);
+    return send(req, res, mapped.status, { ok: false, error: mapped.error });
   }
 };

@@ -89,4 +89,4 @@ export interface AppSettings {
   confidenceThreshold: number;
 }
 
-export const LOW_CONFIDENCE_THRESHOLD = 0.45;
+export const LOW_CONFIDENCE_THRESHOLD = 0.6;
