@@ -12,9 +12,10 @@ function wait(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-/** Time until Sattam overlay begins showing analysis steps (§3.4). */
+/** Time until get Calo overlay begins showing analysis steps (§3.4). */
+const ENGINE_TYPE_CHARS = 'get Calo'.length;
 const SATTAM_INTRO_MS =
-  motion.sattamStartType + 6 * motion.sattamCharMs + motion.sattamStepsDelay;
+  motion.sattamStartType + ENGINE_TYPE_CHARS * motion.sattamCharMs + motion.sattamStepsDelay;
 
 function isDemoUri(uri: string) {
   return uri.startsWith('web-demo:') || uri.startsWith('demo:');

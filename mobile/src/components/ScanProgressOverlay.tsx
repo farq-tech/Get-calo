@@ -58,7 +58,7 @@ const STEP_FADE = [1, 0.55, 0.28] as const;
 const CUBIC = Easing.bezier(0.2, 0, 0, 1);
 
 /**
- * Sattam AI cinematic analyzing — used only for real recognition flows.
+ * get Calo AI cinematic analyzing — used only for real recognition flows.
  * Exact timing from Calora design spec §3.4.
  */
 export function ScanProgressOverlay({ imageUri, step, onBack, imageSource }: Props) {
@@ -68,7 +68,8 @@ export function ScanProgressOverlay({ imageUri, step, onBack, imageSource }: Pro
   const reducedMotion = useReducedMotion();
 
   const [phase, setPhase] = useState<Phase>(reducedMotion ? 'engine' : 'type');
-  const [typed, setTyped] = useState(reducedMotion ? 6 : 0);
+  const word = 'get Calo';
+  const [typed, setTyped] = useState(reducedMotion ? word.length : 0);
   const [cursorOn, setCursorOn] = useState(!reducedMotion);
   const [showSteps, setShowSteps] = useState(reducedMotion);
 
@@ -87,7 +88,6 @@ export function ScanProgressOverlay({ imageUri, step, onBack, imageSource }: Pro
   const creditY = useSharedValue(reducedMotion ? 0 : 8);
   const cursorOp = useSharedValue(1);
 
-  const word = 'Sattam';
   const stepIndex = SCAN_STEP_ORDER.indexOf(step);
 
   useEffect(() => {
