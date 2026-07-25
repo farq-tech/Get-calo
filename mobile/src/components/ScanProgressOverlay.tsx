@@ -336,7 +336,6 @@ export function ScanProgressOverlay({ imageUri, step, onBack, imageSource }: Pro
           {phase === 'engine' || reducedMotion ? (
             <Animated.View style={[styles.engine, engineStyle]}>
               <Text style={styles.engineName}>{t('engineName')}</Text>
-              <Text style={styles.engineSub}>{t('engineSub')}</Text>
             </Animated.View>
           ) : null}
 
