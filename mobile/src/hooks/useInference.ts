@@ -12,8 +12,8 @@ function wait(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-/** Time until get Calo overlay begins showing analysis steps (§3.4). */
-const ENGINE_TYPE_CHARS = 'get Calo'.length;
+/** Time until Get Calo overlay begins showing analysis steps (§3.4). */
+const ENGINE_TYPE_CHARS = 'Get Calo'.length;
 const SATTAM_INTRO_MS =
   motion.sattamStartType + ENGINE_TYPE_CHARS * motion.sattamCharMs + motion.sattamStepsDelay;
 

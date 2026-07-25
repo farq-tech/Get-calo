@@ -58,7 +58,7 @@ const STEP_FADE = [1, 0.55, 0.28] as const;
 const CUBIC = Easing.bezier(0.2, 0, 0, 1);
 
 /**
- * get Calo AI cinematic analyzing — used only for real recognition flows.
+ * Get Calo cinematic analyzing — used only for real recognition flows.
  * Exact timing from Calora design spec §3.4.
  */
 export function ScanProgressOverlay({ imageUri, step, onBack, imageSource }: Props) {
@@ -68,7 +68,7 @@ export function ScanProgressOverlay({ imageUri, step, onBack, imageSource }: Pro
   const reducedMotion = useReducedMotion();
 
   const [phase, setPhase] = useState<Phase>(reducedMotion ? 'engine' : 'type');
-  const word = 'get Calo';
+  const word = 'Get Calo';
   const [typed, setTyped] = useState(reducedMotion ? word.length : 0);
   const [cursorOn, setCursorOn] = useState(!reducedMotion);
   const [showSteps, setShowSteps] = useState(reducedMotion);
@@ -316,8 +316,6 @@ export function ScanProgressOverlay({ imageUri, step, onBack, imageSource }: Pro
       ) : null}
 
       <View style={styles.center}>
-        <Animated.Text style={[styles.credit, creditStyle]}>{t('madeWithLove')}</Animated.Text>
-
         <View style={styles.signatureBlock}>
           {(phase === 'type' || phase === 'credit') && !reducedMotion ? (
             <Animated.View style={[styles.wordRow, wordStyle]}>
@@ -337,9 +335,7 @@ export function ScanProgressOverlay({ imageUri, step, onBack, imageSource }: Pro
 
           {phase === 'engine' || reducedMotion ? (
             <Animated.View style={[styles.engine, engineStyle]}>
-              <Text style={styles.engineName}>
-                {t('engineName')}
-              </Text>
+              <Text style={styles.engineName}>{t('engineName')}</Text>
               <Text style={styles.engineSub}>{t('engineSub')}</Text>
             </Animated.View>
           ) : null}
@@ -530,9 +526,9 @@ const styles = StyleSheet.create({
   },
   typedWord: {
     fontFamily: typography.brand.fontFamily,
-    fontSize: 46,
-    fontWeight: '600',
-    letterSpacing: 0.4,
+    fontSize: 52,
+    fontWeight: '700',
+    letterSpacing: -0.6,
     color: colors.text,
     textShadowColor: 'rgba(45,212,168,0.3)',
     textShadowOffset: { width: 0, height: 2 },
@@ -551,14 +547,14 @@ const styles = StyleSheet.create({
   },
   engineName: {
     fontFamily: typography.brand.fontFamily,
-    fontSize: 24,
-    fontWeight: '600',
-    letterSpacing: 0.2,
+    fontSize: 36,
+    fontWeight: '700',
+    letterSpacing: -0.6,
     color: colors.text,
     writingDirection: 'ltr',
   },
   engineSub: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '500',
     color: colors.textSecondary,
     textAlign: 'center',

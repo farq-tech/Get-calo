@@ -1,14 +1,14 @@
 {
-  "brand": "Calora",
+  "brand": "Get Calo",
   "tagline": "Point. Scan. Know.",
   "credit": "Made with love in Riyadh",
   "creditBy": "Made with love in Riyadh",
   "madeWithLove": "Made with love in Riyadh",
-  "engineName": "get Calo AI",
-  "engineSub": "AI Nutrition Analysis",
+  "engineName": "Get Calo",
+  "engineSub": "Nutrition Analysis",
   "camera": {
     "permissionTitle": "Camera access needed",
-    "permissionBody": "Point at a meal — Calora estimates calories and macros in seconds.",
+    "permissionBody": "Point at a meal — Get Calo estimates calories and macros in seconds.",
     "permissionPrivacy": "Photos are analyzed securely for this scan, then discarded",
     "grantPermission": "Enable camera",
     "notNow": "Not now",
@@ -117,9 +117,9 @@
     "updateAvailable": "Update available",
     "haptics": "Haptics",
     "about": "About",
-    "aboutBody": "Calora recognizes food, drinks, and grocery items, then estimates calories and macros. If the match is wrong, pick from the catalog.",
+    "aboutBody": "Get Calo recognizes food, drinks, and grocery items, then estimates calories and macros. If the match is wrong, pick from the catalog.",
     "privacy": "Photos are analyzed securely and discarded. Corrections stay on this device by default.",
-    "versionLabel": "Calora 1.0"
+    "versionLabel": "Get Calo 1.0"
   },
   "history": {
     "title": "History",
@@ -141,6 +141,6 @@
     "retry": "Retry",
     "loading": "Loading…",
     "error": "Something went wrong",
-    "appName": "Calora"
+    "appName": "Get Calo"
   }
 }
