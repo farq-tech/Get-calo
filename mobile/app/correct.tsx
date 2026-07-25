@@ -16,6 +16,8 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { searchNutrition } from '@/db/nutrition';
 import { submitFeedback } from '@/services/feedback';
+import { saveScanForTraining } from '@/services/trainingCapture';
+import { getDeviceId } from '@/utils/deviceId';
 import { useScanStore, useSettingsStore } from '@/hooks/useSettingsStore';
 import { colors } from '@/theme/colors';
 import { typography } from '@/theme/typography';
@@ -62,16 +64,29 @@ export default function CorrectScreen() {
         () => undefined,
       );
     }
-    if (shareFeedbackEnabled) {
-      void submitFeedback({
-        predictedClassId: result?.topDetection?.classId ?? null,
-        predictedItemIdentity: result?.nutrition?.itemIdentity ?? null,
-        predictedConfidence: result?.confidence ?? null,
+    if (result) {
+      void saveScanForTraining({
+        result,
+        locale,
+        source: 'correction',
         correctedItemIdentity: item.itemIdentity,
         correctedName: name,
-        imageUri: null,
-        locale,
-      }).catch(() => undefined);
+      });
+    }
+    if (shareFeedbackEnabled) {
+      void (async () => {
+        const deviceId = await getDeviceId();
+        await submitFeedback({
+          predictedClassId: result?.topDetection?.classId ?? null,
+          predictedItemIdentity: result?.nutrition?.itemIdentity ?? null,
+          predictedConfidence: result?.confidence ?? null,
+          correctedItemIdentity: item.itemIdentity,
+          correctedName: name,
+          imageUri: result?.imageUri ?? null,
+          locale,
+          deviceId,
+        });
+      })().catch(() => undefined);
     }
     router.replace('/result');
   };

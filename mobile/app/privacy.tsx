@@ -24,6 +24,7 @@ export default function PrivacyScreen() {
   const bullets = [
     t('settings.privacyBulletCamera'),
     t('settings.privacyBulletCloud'),
+    t('settings.privacyBulletTraining'),
     t('settings.privacyBulletHistory'),
     t('settings.privacyBulletAccount'),
     t('settings.privacyBulletContact'),
