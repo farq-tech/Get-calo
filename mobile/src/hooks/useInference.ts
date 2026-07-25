@@ -7,7 +7,7 @@ import { useScanStore, useSettingsStore } from '@/hooks/useSettingsStore';
 import { saveScanForTraining } from '@/services/trainingCapture';
 import { SCAN_STEP_ORDER, type ScanStepId } from '@/components/ScanProgressOverlay';
 import { motion } from '@/theme/tokens';
-import type { Detection, NutritionItem, ScanResult } from '@/types';
+import type { Detection, ScanResult } from '@/types';
 
 function wait(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -17,25 +17,6 @@ function wait(ms: number) {
 const ENGINE_TYPE_CHARS = 'Get Calo'.length;
 const INTRO_MS =
   motion.sattamStartType + ENGINE_TYPE_CHARS * motion.sattamCharMs + motion.sattamStepsDelay;
-
-function isDemoUri(uri: string) {
-  return uri.startsWith('web-demo:') || uri.startsWith('demo:');
-}
-
-const DEMO_NUTRITION: NutritionItem = {
-  itemIdentity: 'demo.margherita_pizza',
-  classId: -100,
-  nameEn: 'Margherita Pizza',
-  nameAr: 'بيتزا مارغريتا',
-  caloriesKcal: 268,
-  proteinG: 11,
-  carbsG: 33,
-  fatG: 10,
-  servingSizeG: 120,
-  servingLabelEn: '1 slice',
-  servingLabelAr: '\u0634\u0631\u064A\u062D\u0629 \u0648\u0627\u062D\u062F\u0629',
-  category: 'meal',
-};
 
 export type ScanOutcome =
   | { status: 'ok'; result: ScanResult }
@@ -99,31 +80,6 @@ export function useInference(): UseInferenceReturn {
         setScanStep('recognize');
         await wait(INTRO_MS);
         if (!active()) return { status: 'cancelled' };
-
-        if (isDemoUri(imageUri)) {
-          await advanceSteps('finalize', scanId);
-          if (!active()) return { status: 'cancelled' };
-          const nutrition = DEMO_NUTRITION;
-          const detection: Detection = {
-            classId: nutrition.classId ?? -100,
-            confidence: 0.94,
-            bbox: { x: 0.12, y: 0.12, width: 0.76, height: 0.76 },
-            label: nutrition.nameEn,
-          };
-          const result: ScanResult = {
-            imageUri,
-            detections: [detection],
-            topDetection: detection,
-            nutrition,
-            confidence: 0.94,
-            lowConfidence: false,
-            modelVersion: 'demo-1.0',
-            inferredAt: new Date().toISOString(),
-            usedFallback: false,
-          };
-          setLastResult(result);
-          return { status: 'ok', result };
-        }
 
         if (isAiScanEnabled()) {
           try {

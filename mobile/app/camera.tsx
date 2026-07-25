@@ -25,8 +25,6 @@ import { colors } from '@/theme/colors';
 import { radius } from '@/theme/tokens';
 import { typography } from '@/theme/typography';
 
-import demoMeal from '../assets/samples/demo-meal.jpg';
-
 function WebLiveVideo({
   bindVideo,
 }: {
@@ -167,16 +165,12 @@ export default function CameraScreen() {
     await runScan(snap);
   }, [runScan, scanning, t, webCamera]);
 
-  const onWebDemo = useCallback(() => {
-    void runScan('web-demo://meal');
-  }, [runScan]);
-
-  const onWebUploadFallback = useCallback(() => {
+  /** Pick a photo from the device library / files (no fake demo scan). */
+  const onUploadPhoto = useCallback(() => {
     if (typeof document === 'undefined') return;
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
-    input.capture = 'environment';
     input.onchange = () => {
       const file = input.files?.[0];
       if (!file) return;
@@ -240,7 +234,7 @@ export default function CameraScreen() {
                   <Ionicons name="shield-checkmark" size={14} color={colors.success} />
                   <Text style={styles.privacyPillText}>{t('camera.permissionPrivacy')}</Text>
                 </View>
-                <Pressable style={styles.permBtn} onPress={onWebUploadFallback}>
+                <Pressable style={styles.permBtn} onPress={onUploadPhoto}>
                   <LinearGradient
                     colors={[...colors.gradientPrimary]}
                     start={{ x: 0, y: 0 }}
@@ -259,7 +253,7 @@ export default function CameraScreen() {
                   <Ionicons name="shield-checkmark" size={14} color={colors.success} />
                   <Text style={styles.privacyPillText}>{t('camera.permissionPrivacy')}</Text>
                 </View>
-                <Pressable style={styles.permBtn} onPress={onWebUploadFallback}>
+                <Pressable style={styles.permBtn} onPress={onUploadPhoto}>
                   <LinearGradient
                     colors={[...colors.gradientPrimary]}
                     start={{ x: 0, y: 0 }}
@@ -296,7 +290,7 @@ export default function CameraScreen() {
                     </Text>
                   </LinearGradient>
                 </Pressable>
-                <Pressable onPress={onWebUploadFallback} style={styles.notNow}>
+                <Pressable onPress={onUploadPhoto} style={styles.notNow}>
                   <Text style={styles.webFallbackAction}>{t('camera.uploadPhoto')}</Text>
                 </Pressable>
               </>
@@ -351,11 +345,11 @@ export default function CameraScreen() {
                 </View>
                 <Pressable
                   style={styles.sideBtn}
-                  onPress={onWebDemo}
-                  accessibilityLabel={t('camera.demoScan')}
+                  onPress={onUploadPhoto}
+                  accessibilityLabel={t('camera.uploadPhoto')}
                 >
-                  <Ionicons name="sparkles-outline" size={20} color={colors.textSecondary} />
-                  <Text style={styles.sideLabel}>{t('camera.tryDemo')}</Text>
+                  <Ionicons name="images-outline" size={20} color={colors.textSecondary} />
+                  <Text style={styles.sideLabel}>{t('camera.upload')}</Text>
                 </Pressable>
               </View>
               <Text style={styles.tapHintFlex}>{t('camera.tapToScan')}</Text>
@@ -368,11 +362,6 @@ export default function CameraScreen() {
             imageUri={analyzingUri!}
             step={scanStep!}
             onBack={onBackFromScan}
-            imageSource={
-              analyzingUri!.startsWith('web-demo:') || analyzingUri!.startsWith('demo:')
-                ? demoMeal
-                : undefined
-            }
           />
         ) : null}
       </View>
@@ -499,11 +488,6 @@ export default function CameraScreen() {
           imageUri={analyzingUri}
           step={scanStep}
           onBack={onBackFromScan}
-          imageSource={
-            analyzingUri.startsWith('web-demo:') || analyzingUri.startsWith('demo:')
-              ? demoMeal
-              : undefined
-          }
         />
       ) : null}
     </View>

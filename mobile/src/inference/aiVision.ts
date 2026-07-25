@@ -3,12 +3,9 @@
  * Supports multi-item plates via `items[]`.
  */
 
-import { Asset } from 'expo-asset';
 import { Platform } from 'react-native';
 
 import type { NutritionItem } from '@/types';
-
-import demoMeal from '../../assets/samples/demo-meal.jpg';
 
 export const AI_MODEL_VERSION = 'vision-gemini-1.2';
 
@@ -88,14 +85,7 @@ async function downscaleWebBlob(blob: Blob): Promise<{ base64: string; mimeType:
 }
 
 async function uriToBase64(uri: string): Promise<{ base64: string; mimeType: string }> {
-  let resolved = uri;
-  if (uri.startsWith('web-demo:') || uri.startsWith('demo:')) {
-    const asset = Asset.fromModule(demoMeal);
-    await asset.downloadAsync();
-    resolved = asset.localUri ?? asset.uri;
-  }
-
-  const response = await fetch(resolved);
+  const response = await fetch(uri);
   const blob = await response.blob();
 
   if (Platform.OS === 'web') {
