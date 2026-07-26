@@ -188,7 +188,11 @@ export default function ResultScreen() {
       >
         <Animated.View entering={FadeIn.duration(motion.emphasized)}>
           {result.imageUri ? (
-            <Image source={{ uri: result.imageUri }} style={styles.heroThumb} />
+            <Image
+              source={{ uri: result.imageUri }}
+              style={styles.heroThumb}
+              resizeMode="cover"
+            />
           ) : null}
 
           {lowConfidence ? (
@@ -338,7 +342,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.xl,
     marginBottom: 14,
     backgroundColor: colors.bgElevated,
-    resizeMode: 'cover',
   },
   empty: {
     flex: 1,
