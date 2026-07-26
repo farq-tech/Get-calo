@@ -131,8 +131,13 @@ export function useInference(): UseInferenceReturn {
             // On web, cloud vision is the real path. Never invent a random mock food —
             // that looked "confused" when camera scans failed silently.
             if (Platform.OS === 'web') {
-              const message =
+              const raw =
                 aiErr instanceof Error ? aiErr.message : 'Scan failed — try again';
+              const message = /quota|credit|billing|rate limit/i.test(raw)
+                ? locale === 'ar'
+                  ? 'انتهت حصة المسح — تحقق من رصيد Gemini API'
+                  : 'Scan quota exceeded — check Gemini API credits'
+                : raw;
               console.warn('[get-calo] cloud scan failed', aiErr);
               setError(message);
               return { status: 'error', message };
