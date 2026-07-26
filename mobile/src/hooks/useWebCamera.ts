@@ -8,7 +8,9 @@ type UseWebCameraReturn = {
   videoRef: React.MutableRefObject<HTMLVideoElement | null>;
   start: () => Promise<boolean>;
   stop: () => void;
+  /** @deprecated prefer captureAsync — kept for sync callers */
   capture: () => string | null;
+  captureAsync: () => Promise<string | null>;
   bindVideo: (node: HTMLVideoElement | null) => void;
 };
 
@@ -151,7 +153,7 @@ export function useWebCamera(): UseWebCameraReturn {
     return false;
   }, [bindToVideo, stop]);
 
-  const capture = useCallback(() => {
+  const drawCoverFrame = useCallback((): HTMLCanvasElement | null => {
     const video = videoRef.current;
     if (!video || typeof document === 'undefined') return null;
     const vw = video.videoWidth;
@@ -163,7 +165,6 @@ export function useWebCamera(): UseWebCameraReturn {
     const viewH = Math.max(1, rect.height || window.innerHeight || vh);
     const { sx, sy, sw, sh } = coverCropSource(vw, vh, viewW, viewH);
 
-    // Downscale long edge so the analyze payload stays reliable on mobile networks.
     const scale = Math.min(1, CAPTURE_MAX_EDGE / Math.max(sw, sh));
     const outW = Math.max(1, Math.round(sw * scale));
     const outH = Math.max(1, Math.round(sh * scale));
@@ -173,15 +174,41 @@ export function useWebCamera(): UseWebCameraReturn {
     canvas.height = outH;
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
+    ctx.drawImage(video, sx, sy, sw, sh, 0, 0, outW, outH);
+    return canvas;
+  }, []);
 
+  const capture = useCallback(() => {
     try {
-      ctx.drawImage(video, sx, sy, sw, sh, 0, 0, outW, outH);
+      const canvas = drawCoverFrame();
+      if (!canvas) return null;
       return canvas.toDataURL('image/jpeg', CAPTURE_JPEG_QUALITY);
     } catch (err) {
       console.warn('[get-calo/web-camera] capture failed', err);
       return null;
     }
-  }, []);
+  }, [drawCoverFrame]);
+
+  const captureAsync = useCallback(async () => {
+    try {
+      const canvas = drawCoverFrame();
+      if (!canvas) return null;
+
+      // Prefer blob: URLs — smaller memory path than giant data: URLs on mobile Safari.
+      if (typeof canvas.toBlob === 'function') {
+        const blob = await new Promise<Blob | null>((resolve) => {
+          canvas.toBlob((b) => resolve(b), 'image/jpeg', CAPTURE_JPEG_QUALITY);
+        });
+        if (blob && blob.size >= 64) {
+          return URL.createObjectURL(blob);
+        }
+      }
+      return canvas.toDataURL('image/jpeg', CAPTURE_JPEG_QUALITY);
+    } catch (err) {
+      console.warn('[get-calo/web-camera] captureAsync failed', err);
+      return null;
+    }
+  }, [drawCoverFrame]);
 
   const bindVideo = useCallback(
     (node: HTMLVideoElement | null) => {
@@ -217,5 +244,5 @@ export function useWebCamera(): UseWebCameraReturn {
     };
   }, [start, stop]);
 
-  return { status, videoRef, start, stop, capture, bindVideo };
+  return { status, videoRef, start, stop, capture, captureAsync, bindVideo };
 }

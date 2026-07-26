@@ -159,6 +159,15 @@ export async function runInference(
     .sort((a, b) => b.confidence - a.confidence)
     .slice(0, maxDetections);
 
+  // Never invent random catalog foods on web — callers treat mock as failure.
+  if (Platform.OS === 'web') {
+    return {
+      detections: [],
+      backend: 'mock',
+      modelVersion: `${active.modelVersion}-mock`.replace(/-mock-mock$/, '-mock'),
+    };
+  }
+
   return {
     detections,
     backend: 'mock',

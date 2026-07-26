@@ -14,6 +14,13 @@ function wait(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function isWebRuntime() {
+  return (
+    Platform.OS === 'web' ||
+    (typeof window !== 'undefined' && typeof document !== 'undefined')
+  );
+}
+
 /** Time until Get Calo overlay begins showing analysis steps. */
 const ENGINE_TYPE_CHARS = 'Get Calo'.length;
 const INTRO_MS =
@@ -32,6 +39,16 @@ export interface UseInferenceReturn {
   scan: (imageUri: string) => Promise<ScanOutcome>;
   cancelScan: () => void;
   resetError: () => void;
+}
+
+function mapCloudError(err: unknown, locale: string): string {
+  const raw = err instanceof Error ? err.message : 'Scan failed — try again';
+  if (/quota|credit|billing|rate limit/i.test(raw)) {
+    return locale === 'ar'
+      ? 'انتهت حصة المسح — تحقق من رصيد Gemini API'
+      : 'Scan quota exceeded — check Gemini API credits';
+  }
+  return raw || (locale === 'ar' ? 'فشل المسح — حاول مرة أخرى' : 'Scan failed — try again');
 }
 
 export function useInference(): UseInferenceReturn {
@@ -76,28 +93,36 @@ export function useInference(): UseInferenceReturn {
       setError(null);
 
       const active = () => scanId === scanIdRef.current;
+      const web = isWebRuntime();
+      const preferCloud = isAiScanEnabled();
 
       try {
         setScanStep('recognize');
         await wait(INTRO_MS);
         if (!active()) return { status: 'cancelled' };
 
-        if (isAiScanEnabled()) {
-          try {
-            const progress = advanceSteps('portion', scanId);
-            const ai = await analyzeFoodWithAi(imageUri, locale, abort.signal);
-            await progress;
+        if (preferCloud) {
+          let lastErr: unknown = null;
+          for (let attempt = 0; attempt < 2; attempt++) {
             if (!active()) return { status: 'cancelled' };
+            if (abort.signal.aborted) return { status: 'cancelled' };
+            try {
+              if (attempt > 0) await wait(350);
+              const progress = advanceSteps('portion', scanId);
+              const ai = await analyzeFoodWithAi(imageUri, locale, abort.signal);
+              await progress;
+              if (!active()) return { status: 'cancelled' };
 
-            await advanceSteps('finalize', scanId);
-            if (!active()) return { status: 'cancelled' };
+              await advanceSteps('finalize', scanId);
+              if (!active()) return { status: 'cancelled' };
 
-            const isUnknown =
-              /unknown/i.test(ai.nameEn) ||
-              (ai.confidence < 0.35 && ai.nutrition.caloriesKcal <= 0);
+              const isUnknown =
+                /unknown/i.test(ai.nameEn) ||
+                (ai.confidence < 0.35 && ai.nutrition.caloriesKcal <= 0);
 
-            const detections: Detection[] = (ai.items.length > 0 ? ai.items : [ai.nutrition]).map(
-              (item, index) => ({
+              const detections: Detection[] = (
+                ai.items.length > 0 ? ai.items : [ai.nutrition]
+              ).map((item, index) => ({
                 classId: item.classId,
                 confidence: ai.confidence,
                 bbox: {
@@ -107,45 +132,39 @@ export function useInference(): UseInferenceReturn {
                   height: 0.7,
                 },
                 label: item.nameEn,
-              }),
-            );
+              }));
 
-            const result: ScanResult = {
-              imageUri,
-              detections,
-              topDetection: detections[0] ?? null,
-              nutrition: isUnknown ? null : ai.nutrition,
-              items: isUnknown ? [] : ai.items,
-              confidence: ai.confidence,
-              lowConfidence: isUnknown || isLowConfidence(ai.confidence, threshold),
-              modelVersion: `${AI_MODEL_VERSION}:${ai.model}`,
-              inferredAt: new Date().toISOString(),
-              usedFallback: false,
-            };
-            setLastResult(result);
-            void saveScanForTraining({ result, locale, source: 'scan' });
-            return { status: 'ok', result };
-          } catch (aiErr) {
-            if (!active()) return { status: 'cancelled' };
-            if (abort.signal.aborted) return { status: 'cancelled' };
-            // On web, cloud vision is the real path. Never invent a random mock food —
-            // that looked "confused" when camera scans failed silently.
-            if (Platform.OS === 'web') {
-              const raw =
-                aiErr instanceof Error ? aiErr.message : 'Scan failed — try again';
-              const message = /quota|credit|billing|rate limit/i.test(raw)
-                ? locale === 'ar'
-                  ? 'انتهت حصة المسح — تحقق من رصيد Gemini API'
-                  : 'Scan quota exceeded — check Gemini API credits'
-                : raw;
-              console.warn('[get-calo] cloud scan failed', aiErr);
-              setError(message);
-              return { status: 'error', message };
+              const result: ScanResult = {
+                imageUri,
+                detections,
+                topDetection: detections[0] ?? null,
+                nutrition: isUnknown ? null : ai.nutrition,
+                items: isUnknown ? [] : ai.items,
+                confidence: ai.confidence,
+                lowConfidence: isUnknown || isLowConfidence(ai.confidence, threshold),
+                modelVersion: `${AI_MODEL_VERSION}:${ai.model}`,
+                inferredAt: new Date().toISOString(),
+                usedFallback: false,
+              };
+              setLastResult(result);
+              void saveScanForTraining({ result, locale, source: 'scan' });
+              return { status: 'ok', result };
+            } catch (aiErr) {
+              lastErr = aiErr;
+              if (!active() || abort.signal.aborted) return { status: 'cancelled' };
+              console.warn(`[get-calo] cloud scan attempt ${attempt + 1} failed`, aiErr);
             }
-            console.warn('[get-calo] cloud scan failed, falling back on-device', aiErr);
+          }
+
+          // Web must never fall through to random mock catalog foods.
+          if (web) {
+            const message = mapCloudError(lastErr, locale);
+            setError(message);
+            return { status: 'error', message };
           }
         }
 
+        // Native / offline-only path
         await loadModel();
         if (!active()) return { status: 'cancelled' };
         setScanStep('ingredients');
@@ -154,9 +173,9 @@ export function useInference(): UseInferenceReturn {
         });
         if (!active()) return { status: 'cancelled' };
 
-        // Mock detections are random catalog hashes — refuse them on web.
-        if (backend === 'mock' && Platform.OS === 'web') {
-          const message = 'Scan failed — try again';
+        if (backend === 'mock') {
+          const message =
+            locale === 'ar' ? 'فشل المسح — حاول مرة أخرى' : 'Scan failed — try again';
           setError(message);
           return { status: 'error', message };
         }

@@ -99,8 +99,18 @@ function dataUriToBlob(uri: string): Blob {
 }
 
 async function uriToBase64(uri: string): Promise<{ base64: string; mimeType: string }> {
-  // Camera snapshots are data: URLs — parse directly (fetch(data:) is flaky on some mobiles).
-  const blob = uri.startsWith('data:') ? dataUriToBlob(uri) : await (await fetch(uri)).blob();
+  // Camera snapshots may be data: or blob: URLs.
+  let blob: Blob;
+  if (uri.startsWith('data:')) {
+    blob = dataUriToBlob(uri);
+  } else {
+    const response = await fetch(uri);
+    blob = await response.blob();
+  }
+
+  if (!blob || blob.size < 32) {
+    throw new Error('Could not read photo — try again');
+  }
 
   if (Platform.OS === 'web') {
     return downscaleWebBlob(blob);

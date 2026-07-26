@@ -157,7 +157,10 @@ export default function CameraScreen() {
     } catch {
       // ignore
     }
-    const snap = webCamera.capture() ?? (await waitAndCapture(webCamera.capture, 5));
+    const snap =
+      (await webCamera.captureAsync()) ??
+      webCamera.capture() ??
+      (await waitAndCapture(webCamera.capture, 5));
     if (!snap) {
       setLocalError(t('camera.captureFailed'));
       return;
