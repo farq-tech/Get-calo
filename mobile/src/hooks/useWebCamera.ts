@@ -12,8 +12,37 @@ type UseWebCameraReturn = {
   bindVideo: (node: HTMLVideoElement | null) => void;
 };
 
+const CAPTURE_MAX_EDGE = 1280;
+const CAPTURE_JPEG_QUALITY = 0.84;
+
 function wait(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Crop the video frame the same way CSS object-fit: cover crops the preview,
+ * so the snapshot matches what the user framed on screen.
+ */
+function coverCropSource(
+  videoW: number,
+  videoH: number,
+  viewW: number,
+  viewH: number,
+): { sx: number; sy: number; sw: number; sh: number } {
+  const videoRatio = videoW / Math.max(videoH, 1);
+  const viewRatio = viewW / Math.max(viewH, 1);
+
+  if (videoRatio > viewRatio) {
+    // Video wider than view — crop left/right
+    const sw = Math.round(videoH * viewRatio);
+    const sx = Math.round((videoW - sw) / 2);
+    return { sx, sy: 0, sw: Math.max(1, sw), sh: videoH };
+  }
+
+  // Video taller than view — crop top/bottom
+  const sh = Math.round(videoW / viewRatio);
+  const sy = Math.round((videoH - sh) / 2);
+  return { sx: 0, sy, sw: videoW, sh: Math.max(1, sh) };
 }
 
 /**
@@ -118,27 +147,38 @@ export function useWebCamera(): UseWebCameraReturn {
     } else {
       setStatus('unavailable');
     }
-    console.warn('[calora/web-camera] getUserMedia failed', lastError);
+    console.warn('[get-calo/web-camera] getUserMedia failed', lastError);
     return false;
   }, [bindToVideo, stop]);
 
   const capture = useCallback(() => {
     const video = videoRef.current;
     if (!video || typeof document === 'undefined') return null;
-    const w = video.videoWidth;
-    const h = video.videoHeight;
-    if (w <= 0 || h <= 0) return null;
+    const vw = video.videoWidth;
+    const vh = video.videoHeight;
+    if (vw <= 0 || vh <= 0) return null;
+
+    const rect = video.getBoundingClientRect();
+    const viewW = Math.max(1, rect.width || window.innerWidth || vw);
+    const viewH = Math.max(1, rect.height || window.innerHeight || vh);
+    const { sx, sy, sw, sh } = coverCropSource(vw, vh, viewW, viewH);
+
+    // Downscale long edge so the analyze payload stays reliable on mobile networks.
+    const scale = Math.min(1, CAPTURE_MAX_EDGE / Math.max(sw, sh));
+    const outW = Math.max(1, Math.round(sw * scale));
+    const outH = Math.max(1, Math.round(sh * scale));
 
     const canvas = document.createElement('canvas');
-    canvas.width = w;
-    canvas.height = h;
+    canvas.width = outW;
+    canvas.height = outH;
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
-    ctx.drawImage(video, 0, 0, w, h);
+
     try {
-      return canvas.toDataURL('image/jpeg', 0.88);
+      ctx.drawImage(video, sx, sy, sw, sh, 0, 0, outW, outH);
+      return canvas.toDataURL('image/jpeg', CAPTURE_JPEG_QUALITY);
     } catch (err) {
-      console.warn('[calora/web-camera] capture failed', err);
+      console.warn('[get-calo/web-camera] capture failed', err);
       return null;
     }
   }, []);

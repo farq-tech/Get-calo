@@ -84,9 +84,23 @@ async function downscaleWebBlob(blob: Blob): Promise<{ base64: string; mimeType:
   }
 }
 
+function dataUriToBlob(uri: string): Blob {
+  const match = /^data:([^;,]+)?(?:;charset=[^;,]+)?;base64,(.+)$/i.exec(uri);
+  if (!match) {
+    throw new Error('Invalid image data');
+  }
+  const mimeType = match[1] || 'image/jpeg';
+  const binary = globalThis.atob(match[2] || '');
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return new Blob([bytes], { type: mimeType });
+}
+
 async function uriToBase64(uri: string): Promise<{ base64: string; mimeType: string }> {
-  const response = await fetch(uri);
-  const blob = await response.blob();
+  // Camera snapshots are data: URLs — parse directly (fetch(data:) is flaky on some mobiles).
+  const blob = uri.startsWith('data:') ? dataUriToBlob(uri) : await (await fetch(uri)).blob();
 
   if (Platform.OS === 'web') {
     return downscaleWebBlob(blob);

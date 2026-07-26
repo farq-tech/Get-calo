@@ -32,8 +32,15 @@ function isDemoUri(uri: string): boolean {
 async function uriToBlob(uri: string): Promise<Blob | null> {
   try {
     if (uri.startsWith('data:')) {
-      const resp = await fetch(uri);
-      return await resp.blob();
+      const match = /^data:([^;,]+)?(?:;charset=[^;,]+)?;base64,(.+)$/i.exec(uri);
+      if (!match) return null;
+      const mimeType = match[1] || 'image/jpeg';
+      const binary = globalThis.atob(match[2] || '');
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i += 1) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+      return new Blob([bytes], { type: mimeType });
     }
     const resp = await fetch(uri);
     return await resp.blob();

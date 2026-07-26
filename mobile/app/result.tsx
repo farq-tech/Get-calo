@@ -338,6 +338,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.xl,
     marginBottom: 14,
     backgroundColor: colors.bgElevated,
+    resizeMode: 'cover',
   },
   empty: {
     flex: 1,

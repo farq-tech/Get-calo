@@ -33,8 +33,8 @@
     "uploadPhoto": "Upload photo",
     "onDevice": "Analyzing your photo…",
     "captureFailed": "Couldn't capture — try again or upload a photo",
-    "scanFailed": "Scan failed — try again",
-    "cloudFallback": "Cloud scan unavailable — using on-device estimate",
+    "scanFailed": "Scan failed — try again or upload a clearer photo",
+    "cloudFallback": "Cloud scan unavailable — try again",
     "analyzeMsgs": {
       "recognize": "Recognizing food…",
       "ingredients": "Detecting ingredients…",

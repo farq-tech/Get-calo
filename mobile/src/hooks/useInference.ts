@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
+import { Platform } from 'react-native';
 
 import { lookupByClassId } from '@/db/nutrition';
 import { analyzeFoodWithAi, AI_MODEL_VERSION, isAiScanEnabled } from '@/inference/aiVision';
@@ -127,22 +128,33 @@ export function useInference(): UseInferenceReturn {
           } catch (aiErr) {
             if (!active()) return { status: 'cancelled' };
             if (abort.signal.aborted) return { status: 'cancelled' };
+            // On web, cloud vision is the real path. Never invent a random mock food —
+            // that looked "confused" when camera scans failed silently.
+            if (Platform.OS === 'web') {
+              const message =
+                aiErr instanceof Error ? aiErr.message : 'Scan failed — try again';
+              console.warn('[get-calo] cloud scan failed', aiErr);
+              setError(message);
+              return { status: 'error', message };
+            }
             console.warn('[get-calo] cloud scan failed, falling back on-device', aiErr);
-            setError(
-              aiErr instanceof Error
-                ? aiErr.message
-                : 'Cloud scan unavailable — trying on-device',
-            );
           }
         }
 
         await loadModel();
         if (!active()) return { status: 'cancelled' };
         setScanStep('ingredients');
-        const { detections, modelVersion } = await runInference(imageUri, {
+        const { detections, modelVersion, backend } = await runInference(imageUri, {
           confidenceThreshold: threshold,
         });
         if (!active()) return { status: 'cancelled' };
+
+        // Mock detections are random catalog hashes — refuse them on web.
+        if (backend === 'mock' && Platform.OS === 'web') {
+          const message = 'Scan failed — try again';
+          setError(message);
+          return { status: 'error', message };
+        }
 
         await advanceSteps('finalize', scanId);
         if (!active()) return { status: 'cancelled' };

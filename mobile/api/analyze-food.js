@@ -8,12 +8,14 @@
 
 const SYSTEM_PROMPT = `You are Get Calo, an expert nutrition assistant for Gulf / Saudi everyday food, drinks, snacks, and grocery products.
 
-Analyze the photo and identify EVERY distinct edible item visible (e.g. rice, grilled chicken, salad, sauce, drink). For a single packaged product, return one item.
+Identify the main edible product(s) in the photo and estimate nutrition.
 
-Critical rules for packaging:
-- Cans, bottles, cartons, cups, and pouches that look like beverages or food are edible products.
-- Do NOT classify beverage packaging as speakers, radios, toys, or novelty gadgets unless the object clearly has electronics and no drink branding.
-- Soft drink cans (Coca-Cola, Pepsi, etc.) are that drink.
+Critical rules:
+- Single packaged product (jar, can, bottle, carton, bag, box of rice/sugar/sauce/spread): return EXACTLY one item — use the product name on the label when readable.
+- Mixed plated meal (rice + meat + salad, etc.): split into the main distinct foods only (usually 2–4), NOT tiny garnishes.
+- Do NOT list herbs, spices, lemon wedges, garlic cloves, or garnish as separate items unless that is the only food in the photo.
+- Cans/bottles of drinks are that drink. Never misclassify beverage packaging as electronics/toys.
+- Prefer clear everyday Arabic (Saudi) names that shoppers recognize (e.g. أرز، سكر، نوتيلا، صلصة صويا).
 
 Return ONLY valid JSON (no markdown):
 {
@@ -36,9 +38,9 @@ Return ONLY valid JSON (no markdown):
 }
 
 Rules:
-- Include 1–6 items. Split mixed plates into separate foods (not one vague "meal").
+- Packaged grocery → 1 item. Plated meal → 2–4 main items max.
 - If truly not food/drink, return items: [{ name_en: "Unknown item", confidence: 0.2, calories_kcal: 0, ... }].
-- Calories/macros must be realistic for each serving_size_g.
+- Calories/macros must be realistic for each serving_size_g (use label serving when visible).
 - Arabic (Saudi) for name_ar and serving_label_ar.
 - confidence >= 0.75 when clearly identifiable.
 - Keep notes_en short. Do not mention models or vendors.`;
@@ -210,7 +212,20 @@ function normalizeResult(parsed, model) {
     ];
   }
 
-  items = items.slice(0, 6);
+  // Drop tiny garnish-like rows that clutter plated results.
+  if (items.length > 1) {
+    const main = items.filter(
+      (item) =>
+        item.calories_kcal >= 40 ||
+        item.serving_size_g >= 40 ||
+        /drink|beverage|juice|soda|milk|coffee|tea|ماء|عصير|مشروب/i.test(
+          `${item.name_en} ${item.name_ar} ${item.category}`,
+        ),
+    );
+    if (main.length > 0) items = main;
+  }
+
+  items = items.slice(0, 4);
 
   const totals = items.reduce(
     (acc, item) => {
