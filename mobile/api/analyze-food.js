@@ -325,9 +325,7 @@ async function callGemini(imageBase64, mimeType, locale) {
 
   const raw = await resp.text();
   if (!resp.ok) {
-    const err = new Error(resp.status === 429 ? 'Too many requests' : 'Scan failed');
-    err.status = resp.status === 429 ? 429 : 502;
-    throw err;
+    throw mapGeminiHttpError(resp.status, raw);
   }
 
   let data;
@@ -343,7 +341,9 @@ async function callGemini(imageBase64, mimeType, locale) {
     .map((p) => p.text || '')
     .join('');
   if (!text) {
-    const err = new Error('Scan failed');
+    // Blocked / empty candidates often mean safety filter or quota soft-fail.
+    const finish = data?.candidates?.[0]?.finishReason || data?.promptFeedback?.blockReason || '';
+    const err = new Error(finish ? `Scan failed (${finish})` : 'Scan failed');
     err.status = 502;
     throw err;
   }
@@ -352,9 +352,40 @@ async function callGemini(imageBase64, mimeType, locale) {
   return normalizeResult(parsed, model);
 }
 
+function mapGeminiHttpError(status, raw) {
+  const body = String(raw || '').toLowerCase();
+  const quota =
+    status === 429 ||
+    body.includes('resource_exhausted') ||
+    body.includes('quota') ||
+    body.includes('rate limit') ||
+    body.includes('billing') ||
+    body.includes('credit');
+  const badKey =
+    status === 400 &&
+    (body.includes('api_key_invalid') ||
+      body.includes('api key not valid') ||
+      body.includes('api key expired'));
+  const err = new Error(
+    quota
+      ? 'Scan quota exceeded — check Gemini API credits'
+      : badKey
+        ? 'Scan service misconfigured'
+        : 'Scan failed',
+  );
+  err.status = quota ? 429 : badKey ? 503 : status === 429 ? 429 : 502;
+  return err;
+}
+
 function publicError(err) {
   const status = err && err.status ? Number(err.status) : 500;
-  if (status === 429) return { status, error: 'Too many requests — try again later' };
+  const message = err && err.message ? String(err.message) : '';
+  if (status === 429 || /quota|credit|billing|rate limit/i.test(message)) {
+    return {
+      status: 429,
+      error: 'Scan quota exceeded — add Gemini credits or try again later',
+    };
+  }
   if (status === 413) return { status, error: 'Image too large' };
   if (status === 400) return { status, error: 'Invalid request' };
   if (status === 401 || status === 403) return { status, error: 'Unauthorized' };
