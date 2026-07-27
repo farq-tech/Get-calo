@@ -28,6 +28,86 @@ export interface NutritionItem {
   servingLabelEn: string;
   servingLabelAr: string | null;
   category: string | null;
+  fiberG?: number;
+  sugarG?: number;
+  sodiumMg?: number;
+}
+
+export type NutrientLevel = 'Low' | 'Medium' | 'High';
+
+export interface NutritionReport {
+  foods: Array<{
+    nameEn: string;
+    nameAr: string;
+    weightG: number;
+    confidence: number;
+    caloriesKcal: number;
+    proteinG: number;
+    carbsG: number;
+    fatG: number;
+    fiberG: number;
+    sugarG: number;
+    sodiumMg: number;
+  }>;
+  mealSummary: {
+    titleEn: string;
+    titleAr: string;
+    assumptionsEn: string;
+    servingLabelEn: string;
+    servingLabelAr: string;
+    totalWeightG: number;
+  };
+  macros: {
+    caloriesKcal: number;
+    proteinG: number;
+    carbsG: number;
+    fatG: number;
+    fiberG: number;
+    sugarG: number;
+    sodiumMg: number;
+    cholesterolMg: number;
+    saturatedFatG: number;
+    unsaturatedFatG: number;
+  };
+  micronutrients: Record<string, NutrientLevel>;
+  healthAnalysis: {
+    healthScore: number;
+    proteinScore: number;
+    fiberScore: number;
+    sugarScore: number;
+    fatQuality: string;
+    sodiumLevel: string;
+    mealBalance: string;
+    processingLevel: string;
+    hydrationSupport: string;
+    energyDensity: string;
+    whyEn: string;
+    whyAr: string;
+  };
+  dietCompatibility: Record<string, boolean>;
+  allergens: string[];
+  improvements: Array<{
+    actionEn: string;
+    actionAr: string;
+    kcalDelta: number;
+    healthScoreDelta: number;
+  }>;
+  exerciseEquivalent: {
+    walkingMin: number;
+    runningMin: number;
+    cyclingMin: number;
+    swimmingMin: number;
+    jumpRopeMin: number;
+    strengthTrainingMin: number;
+  };
+  confidenceDetail: {
+    foodRecognition: number;
+    portionSize: number;
+    calories: number;
+    macronutrients: number;
+    micronutrients: number;
+    overall: number;
+  };
 }
 
 export interface ScanResult {
@@ -37,6 +117,8 @@ export interface ScanResult {
   nutrition: NutritionItem | null;
   /** Per-item breakdown for mixed plates (AI multi-item). */
   items?: NutritionItem[];
+  /** Full AI nutrition vision report when available. */
+  report?: NutritionReport | null;
   confidence: number;
   lowConfidence: boolean;
   modelVersion: string;

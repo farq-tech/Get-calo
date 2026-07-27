@@ -80,7 +80,22 @@
     "offlineReady": "Offline ready",
     "servingHalf": "Half",
     "servingRegular": "Regular",
-    "servingLarge": "Large"
+    "servingLarge": "Large",
+    "healthScore": "Health score",
+    "healthWhy": "Why",
+    "diets": "Diet fit",
+    "micros": "Micronutrients",
+    "allergens": "Possible allergens",
+    "improve": "Improve this meal",
+    "burn": "To burn this off",
+    "walking": "Walk",
+    "running": "Run",
+    "cycling": "Cycle",
+    "extras": "Also tracked",
+    "fiber": "Fiber",
+    "sugar": "Sugar",
+    "sodium": "Sodium",
+    "minutes": "m"
   },
   "correct": {
     "title": "Pick food or drink",

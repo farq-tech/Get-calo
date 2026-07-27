@@ -80,7 +80,22 @@
     "offlineReady": "جاهز دون اتصال",
     "servingHalf": "نصف",
     "servingRegular": "عادي",
-    "servingLarge": "كبير"
+    "servingLarge": "كبير",
+    "healthScore": "درجة الصحة",
+    "healthWhy": "لماذا",
+    "diets": "ملاءمة الحميات",
+    "micros": "الفيتامينات والمعادن",
+    "allergens": "مسببات حساسية محتملة",
+    "improve": "حسّن الوجبة",
+    "burn": "لحرقها تحتاج",
+    "walking": "مشي",
+    "running": "جري",
+    "cycling": "دراجة",
+    "extras": "أيضاً",
+    "fiber": "ألياف",
+    "sugar": "سكر",
+    "sodium": "صوديوم",
+    "minutes": "د"
   },
   "correct": {
     "title": "اختر أكل أو مشروب",

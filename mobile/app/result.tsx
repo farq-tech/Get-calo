@@ -16,6 +16,7 @@ import Animated, { FadeIn } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 
 import { CalorieCard } from '@/components/CalorieCard';
+import { NutritionReportPanel } from '@/components/NutritionReportPanel';
 import { PlateBreakdown } from '@/components/PlateBreakdown';
 import { useMealStore } from '@/hooks/useMealStore';
 import { useScanStore, useSettingsStore } from '@/hooks/useSettingsStore';
@@ -227,6 +228,30 @@ export default function ResultScreen() {
           kcalLabel={t('result.kcal')}
           gramsLabel={t('result.grams')}
         />
+
+        {result.report ? (
+          <NutritionReportPanel
+            report={result.report}
+            locale={locale}
+            labels={{
+              healthScore: t('result.healthScore'),
+              why: t('result.healthWhy'),
+              diets: t('result.diets'),
+              micros: t('result.micros'),
+              allergens: t('result.allergens'),
+              improve: t('result.improve'),
+              burn: t('result.burn'),
+              walking: t('result.walking'),
+              running: t('result.running'),
+              cycling: t('result.cycling'),
+              extras: t('result.extras'),
+              fiber: t('result.fiber'),
+              sugar: t('result.sugar'),
+              sodium: t('result.sodium'),
+              minutes: t('result.minutes'),
+            }}
+          />
+        ) : null}
 
         <View style={styles.servingBox}>
           <Text style={styles.servingTitle}>{t('result.servingSize')}</Text>

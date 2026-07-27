@@ -6,7 +6,7 @@
 import { Platform } from 'react-native';
 
 export const CLIENT_BUILD_ID =
-  process.env.EXPO_PUBLIC_BUILD_ID || '20260727-0540';
+  process.env.EXPO_PUBLIC_BUILD_ID || '20260727-1400';
 
 const STORAGE_KEY = 'get-calo-build-id';
 

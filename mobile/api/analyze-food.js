@@ -1,55 +1,213 @@
 /**
- * Get Calo food vision endpoint (Vercel Serverless).
- * POST { imageBase64, mimeType?, locale? } → food + nutrition JSON
+ * Get Calo Nutrition Vision Engine (Vercel Serverless).
+ * POST { imageBase64, mimeType?, locale? } → full nutrition report JSON
  *
  * Hardening: CORS allowlist, optional shared token, IP rate limit,
  * mime/locale validation, Gemini timeout, opaque client errors.
  */
 
-const SYSTEM_PROMPT = `You are Get Calo, an expert nutrition assistant for Gulf / Saudi everyday food, drinks, snacks, and grocery products.
+const SYSTEM_PROMPT = `You are an expert AI Nutrition Vision Engine for Get Calo (Gulf / Saudi everyday food).
 
-Identify the main edible product(s) in the photo and estimate nutrition.
+Your job is NOT to simply identify food.
+Your goal is to generate the most complete nutritional analysis possible from ONE food image.
+Treat every response as a professional nutrition report.
+Never reply with "I can't know." Estimate scientifically and provide confidence scores.
 
-Critical rules:
-- Hand-held whole foods (date, cookie, biscuit, falafel, fruit, candy): identify THAT food — never guess a packaged powder/flour/spice from a blurry brown shape.
-- Single packaged product (jar, can, bottle, carton, bag, box of rice/sugar/sauce/spread): return EXACTLY one item — use the product name on the label when readable.
-- Mixed plated meal (rice + meat + salad, etc.): split into the main distinct foods only (usually 2–4), NOT tiny garnishes.
-- Do NOT list herbs, spices, lemon wedges, garlic cloves, or garnish as separate items unless that is the only food in the photo.
-- Cans/bottles of drinks are that drink. Never misclassify beverage packaging as electronics/toys.
-- Prefer clear everyday Arabic (Saudi) names that shoppers recognize (e.g. أرز، سكر، تمر، كوكيز، نوتيلا).
+--------------------------------------------------
+DETECTION RULES
+--------------------------------------------------
+- Identify every DISTINCT edible item visible (chicken, rice, fries, sauce, drink, packaged product, etc.).
+- Hand-held whole foods (date, cookie, biscuit, falafel, fruit): identify THAT food — never guess packaged powder/flour/spice from a blurry brown shape.
+- Single packaged product: return EXACTLY one food — use the label name when readable.
+- Mixed plated meals: split main foods (usually 2–6). Do NOT list tiny garnishes (cilantro pinch, lemon wedge, single garlic clove) unless that is the only food.
+- Soft drink cans/bottles are that drink — never electronics/toys.
+- Prefer clear everyday Arabic (Saudi) names (أرز، تمر، دجاج مشوي، نوتيلا).
+- Base estimates on USDA / FoodData Central equivalents. If partially hidden, estimate conservatively.
+- Never invent impossible foods.
 
-Return ONLY valid JSON (no markdown):
+--------------------------------------------------
+OUTPUT — STRICT JSON ONLY (no markdown)
+--------------------------------------------------
 {
-  "items": [
+  "foods": [
     {
       "name_en": string,
       "name_ar": string,
+      "estimated_weight_g": number,
+      "serving_label_en": string,
+      "serving_label_ar": string,
       "confidence": number,
+      "category": string,
       "calories_kcal": number,
       "protein_g": number,
       "carbs_g": number,
       "fat_g": number,
-      "serving_size_g": number,
-      "serving_label_en": string,
-      "serving_label_ar": string,
-      "category": string
+      "fiber_g": number,
+      "sugar_g": number,
+      "sodium_mg": number,
+      "cholesterol_mg": number,
+      "saturated_fat_g": number,
+      "unsaturated_fat_g": number
     }
   ],
-  "notes_en": string
+  "meal_summary": {
+    "title_en": string,
+    "title_ar": string,
+    "assumptions_en": string,
+    "serving_label_en": string,
+    "serving_label_ar": string,
+    "total_weight_g": number
+  },
+  "macros": {
+    "calories_kcal": number,
+    "protein_g": number,
+    "carbs_g": number,
+    "fat_g": number,
+    "fiber_g": number,
+    "sugar_g": number,
+    "sodium_mg": number,
+    "cholesterol_mg": number,
+    "saturated_fat_g": number,
+    "unsaturated_fat_g": number
+  },
+  "micronutrients": {
+    "vitamin_a": "Low|Medium|High",
+    "vitamin_c": "Low|Medium|High",
+    "vitamin_d": "Low|Medium|High",
+    "vitamin_e": "Low|Medium|High",
+    "vitamin_k": "Low|Medium|High",
+    "vitamin_b1": "Low|Medium|High",
+    "vitamin_b2": "Low|Medium|High",
+    "vitamin_b6": "Low|Medium|High",
+    "vitamin_b12": "Low|Medium|High",
+    "folate": "Low|Medium|High",
+    "calcium": "Low|Medium|High",
+    "iron": "Low|Medium|High",
+    "magnesium": "Low|Medium|High",
+    "potassium": "Low|Medium|High",
+    "zinc": "Low|Medium|High",
+    "phosphorus": "Low|Medium|High",
+    "selenium": "Low|Medium|High"
+  },
+  "health_analysis": {
+    "health_score": number,
+    "protein_score": number,
+    "fiber_score": number,
+    "sugar_score": number,
+    "fat_quality": string,
+    "sodium_level": string,
+    "meal_balance": string,
+    "processing_level": string,
+    "hydration_support": string,
+    "energy_density": string,
+    "why_en": string,
+    "why_ar": string
+  },
+  "diet_compatibility": {
+    "weight_loss": boolean,
+    "muscle_gain": boolean,
+    "keto": boolean,
+    "low_carb": boolean,
+    "mediterranean": boolean,
+    "high_protein": boolean,
+    "vegetarian": boolean,
+    "vegan": boolean,
+    "diabetic_friendly": boolean,
+    "heart_healthy": boolean,
+    "low_sodium": boolean,
+    "kids": boolean,
+    "athletes": boolean
+  },
+  "allergens": ["Milk","Egg","Fish","Shellfish","Soy","Peanuts","Tree Nuts","Sesame","Gluten","Mustard","Celery","Lupin"],
+  "improvements": [
+    {
+      "action_en": string,
+      "action_ar": string,
+      "kcal_delta": number,
+      "health_score_delta": number
+    }
+  ],
+  "exercise_equivalent": {
+    "walking_min": number,
+    "running_min": number,
+    "cycling_min": number,
+    "swimming_min": number,
+    "jump_rope_min": number,
+    "strength_training_min": number
+  },
+  "confidence": {
+    "food_recognition": number,
+    "portion_size": number,
+    "calories": number,
+    "macronutrients": number,
+    "micronutrients": number,
+    "overall": number
+  }
 }
 
-Rules:
-- Packaged grocery → 1 item. Plated meal → 2–4 main items max.
-- If truly not food/drink, return items: [{ name_en: "Unknown item", confidence: 0.2, calories_kcal: 0, ... }].
-- Calories/macros must be realistic for each serving_size_g (use label serving when visible).
-- Arabic (Saudi) for name_ar and serving_label_ar.
-- confidence >= 0.75 when clearly identifiable.
-- Keep notes_en short. Do not mention models or vendors.`;
+Rules for numbers:
+- confidence fields: 0–1
+- health_score / protein_score / fiber_score / sugar_score: 0–100
+- allergens: only include likely ones (empty array if none)
+- improvements: 2–5 practical suggestions with realistic kcal_delta (negative = fewer kcal)
+- exercise minutes assume ~70kg adult
+- If truly not food/drink: one food "Unknown item" with low confidence and near-zero macros`;
 
 const ALLOWED_MIMES = new Set(['image/jpeg', 'image/jpg', 'image/png', 'image/webp']);
 const RATE_WINDOW_MS = 15 * 60 * 1000;
 const RATE_MAX = 30;
-const GEMINI_TIMEOUT_MS = 28000;
+const GEMINI_TIMEOUT_MS = 45000;
+
+const MICRO_KEYS = [
+  'vitamin_a',
+  'vitamin_c',
+  'vitamin_d',
+  'vitamin_e',
+  'vitamin_k',
+  'vitamin_b1',
+  'vitamin_b2',
+  'vitamin_b6',
+  'vitamin_b12',
+  'folate',
+  'calcium',
+  'iron',
+  'magnesium',
+  'potassium',
+  'zinc',
+  'phosphorus',
+  'selenium',
+];
+
+const DIET_KEYS = [
+  'weight_loss',
+  'muscle_gain',
+  'keto',
+  'low_carb',
+  'mediterranean',
+  'high_protein',
+  'vegetarian',
+  'vegan',
+  'diabetic_friendly',
+  'heart_healthy',
+  'low_sodium',
+  'kids',
+  'athletes',
+];
+
+const ALLERGEN_SET = new Set([
+  'Milk',
+  'Egg',
+  'Fish',
+  'Shellfish',
+  'Soy',
+  'Peanuts',
+  'Tree Nuts',
+  'Sesame',
+  'Gluten',
+  'Mustard',
+  'Celery',
+  'Lupin',
+]);
 
 /** Best-effort in-memory rate limit (per serverless isolate). */
 const rateBuckets = globalThis.__getCaloRateBuckets || new Map();
@@ -78,7 +236,6 @@ function corsOrigin(req) {
   const origin = String(req.headers.origin || '');
   const allow = allowedOrigins();
   if (origin && allow.includes(origin)) return origin;
-  // Same-origin / non-browser clients: no ACAO reflection of *
   if (!origin) return allow[0];
   return null;
 }
@@ -122,10 +279,7 @@ function rateLimit(ip) {
 
 function authorize(req) {
   const secret = process.env.ANALYZE_API_SECRET || process.env.GET_CALO_ANALYZE_SECRET;
-  if (!secret) {
-    // Secret optional for gradual rollout; CORS + rate limit still apply.
-    return true;
-  }
+  if (!secret) return true;
   const header = String(req.headers['x-get-calo-token'] || '');
   const auth = String(req.headers.authorization || '');
   const bearer = auth.toLowerCase().startsWith('bearer ') ? auth.slice(7).trim() : '';
@@ -176,31 +330,85 @@ function readBody(req) {
   });
 }
 
-function normalizeItem(raw) {
+function num(value, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function level(value) {
+  const raw = String(value || '').trim().toLowerCase();
+  if (raw.startsWith('h')) return 'High';
+  if (raw.startsWith('m')) return 'Medium';
+  return 'Low';
+}
+
+function normalizeFood(raw) {
+  const weight = Math.max(1, num(raw.estimated_weight_g ?? raw.serving_size_g, 100));
+  const confidenceRaw = num(raw.confidence, 0.5);
+  const confidence = confidenceRaw > 1 ? clamp(confidenceRaw / 100, 0, 1) : clamp(confidenceRaw, 0, 1);
+
   return {
-    name_en: String(raw.name_en || 'Unknown item'),
+    name_en: String(raw.name_en || raw.name || 'Unknown item'),
     name_ar: String(raw.name_ar || ''),
-    confidence: Math.max(0, Math.min(1, Number(raw.confidence) || 0.5)),
-    calories_kcal: Math.max(0, Number(raw.calories_kcal) || 0),
-    protein_g: Math.max(0, Number(raw.protein_g) || 0),
-    carbs_g: Math.max(0, Number(raw.carbs_g) || 0),
-    fat_g: Math.max(0, Number(raw.fat_g) || 0),
-    serving_size_g: Math.max(1, Number(raw.serving_size_g) || 100),
+    estimated_weight_g: Math.round(weight),
     serving_label_en: String(raw.serving_label_en || 'serving'),
     serving_label_ar: String(raw.serving_label_ar || '\u062D\u0635\u0629'),
+    confidence,
     category: String(raw.category || 'food'),
+    calories_kcal: Math.max(0, num(raw.calories_kcal)),
+    protein_g: Math.max(0, num(raw.protein_g)),
+    carbs_g: Math.max(0, num(raw.carbs_g)),
+    fat_g: Math.max(0, num(raw.fat_g)),
+    fiber_g: Math.max(0, num(raw.fiber_g)),
+    sugar_g: Math.max(0, num(raw.sugar_g)),
+    sodium_mg: Math.max(0, num(raw.sodium_mg)),
+    cholesterol_mg: Math.max(0, num(raw.cholesterol_mg)),
+    saturated_fat_g: Math.max(0, num(raw.saturated_fat_g)),
+    unsaturated_fat_g: Math.max(0, num(raw.unsaturated_fat_g)),
   };
 }
 
-function normalizeResult(parsed, model) {
-  let items = Array.isArray(parsed.items) ? parsed.items.map(normalizeItem) : [];
+/** Legacy `items[]` shape for older clients. */
+function foodToLegacyItem(food) {
+  return {
+    name_en: food.name_en,
+    name_ar: food.name_ar,
+    confidence: food.confidence,
+    calories_kcal: food.calories_kcal,
+    protein_g: food.protein_g,
+    carbs_g: food.carbs_g,
+    fat_g: food.fat_g,
+    serving_size_g: food.estimated_weight_g,
+    serving_label_en: food.serving_label_en,
+    serving_label_ar: food.serving_label_ar,
+    category: food.category,
+    fiber_g: food.fiber_g,
+    sugar_g: food.sugar_g,
+    sodium_mg: food.sodium_mg,
+  };
+}
 
-  if (items.length === 0 && (parsed.name_en || parsed.calories_kcal != null)) {
-    items = [normalizeItem(parsed)];
+function sumFoods(foods, key) {
+  return foods.reduce((sum, food) => sum + num(food[key]), 0);
+}
+
+function normalizeResult(parsed, model) {
+  let foods = [];
+  if (Array.isArray(parsed.foods) && parsed.foods.length) {
+    foods = parsed.foods.map(normalizeFood);
+  } else if (Array.isArray(parsed.items) && parsed.items.length) {
+    foods = parsed.items.map(normalizeFood);
+  } else if (parsed.name_en || parsed.calories_kcal != null) {
+    foods = [normalizeFood(parsed)];
   }
-  if (items.length === 0) {
-    items = [
-      normalizeItem({
+
+  if (foods.length === 0) {
+    foods = [
+      normalizeFood({
         name_en: 'Unknown item',
         name_ar: '',
         confidence: 0.2,
@@ -208,61 +416,189 @@ function normalizeResult(parsed, model) {
         protein_g: 0,
         carbs_g: 0,
         fat_g: 0,
-        serving_size_g: 100,
+        estimated_weight_g: 100,
       }),
     ];
   }
 
-  // Drop tiny garnish-like rows that clutter plated results.
-  if (items.length > 1) {
-    const main = items.filter(
-      (item) =>
-        item.calories_kcal >= 40 ||
-        item.serving_size_g >= 40 ||
+  if (foods.length > 1) {
+    const main = foods.filter(
+      (food) =>
+        food.calories_kcal >= 25 ||
+        food.estimated_weight_g >= 25 ||
         /drink|beverage|juice|soda|milk|coffee|tea|ماء|عصير|مشروب/i.test(
-          `${item.name_en} ${item.name_ar} ${item.category}`,
+          `${food.name_en} ${food.name_ar} ${food.category}`,
         ),
     );
-    if (main.length > 0) items = main;
+    if (main.length > 0) foods = main;
   }
+  foods = foods.slice(0, 8);
 
-  items = items.slice(0, 4);
+  const macrosIn = parsed.macros && typeof parsed.macros === 'object' ? parsed.macros : {};
+  const macros = {
+    calories_kcal: Math.round(num(macrosIn.calories_kcal, sumFoods(foods, 'calories_kcal'))),
+    protein_g: Math.round(num(macrosIn.protein_g, sumFoods(foods, 'protein_g'))),
+    carbs_g: Math.round(num(macrosIn.carbs_g, sumFoods(foods, 'carbs_g'))),
+    fat_g: Math.round(num(macrosIn.fat_g, sumFoods(foods, 'fat_g'))),
+    fiber_g: Math.round(num(macrosIn.fiber_g, sumFoods(foods, 'fiber_g'))),
+    sugar_g: Math.round(num(macrosIn.sugar_g, sumFoods(foods, 'sugar_g'))),
+    sodium_mg: Math.round(num(macrosIn.sodium_mg, sumFoods(foods, 'sodium_mg'))),
+    cholesterol_mg: Math.round(num(macrosIn.cholesterol_mg, sumFoods(foods, 'cholesterol_mg'))),
+    saturated_fat_g: Math.round(num(macrosIn.saturated_fat_g, sumFoods(foods, 'saturated_fat_g'))),
+    unsaturated_fat_g: Math.round(
+      num(macrosIn.unsaturated_fat_g, sumFoods(foods, 'unsaturated_fat_g')),
+    ),
+  };
 
-  const totals = items.reduce(
-    (acc, item) => {
-      acc.calories_kcal += item.calories_kcal;
-      acc.protein_g += item.protein_g;
-      acc.carbs_g += item.carbs_g;
-      acc.fat_g += item.fat_g;
-      acc.serving_size_g += item.serving_size_g;
-      return acc;
-    },
-    { calories_kcal: 0, protein_g: 0, carbs_g: 0, fat_g: 0, serving_size_g: 0 },
+  const totalWeight = Math.max(
+    1,
+    Math.round(
+      num(
+        parsed.meal_summary?.total_weight_g,
+        foods.reduce((s, f) => s + f.estimated_weight_g, 0),
+      ),
+    ),
   );
 
-  const primary = items[0];
-  const isPlate = items.length > 1;
-  const confidence =
-    items.reduce((sum, item) => sum + item.confidence, 0) / Math.max(items.length, 1);
+  const isPlate = foods.length > 1;
+  const primary = foods[0];
+  const summaryIn = parsed.meal_summary && typeof parsed.meal_summary === 'object' ? parsed.meal_summary : {};
+  const meal_summary = {
+    title_en: String(
+      summaryIn.title_en ||
+        (isPlate ? `Plate · ${foods.length} items` : primary.name_en),
+    ),
+    title_ar: String(
+      summaryIn.title_ar ||
+        (isPlate
+          ? `\u0635\u062D\u0646 \u00B7 ${foods.length} \u0623\u0635\u0646\u0627\u0641`
+          : primary.name_ar),
+    ),
+    assumptions_en: String(summaryIn.assumptions_en || parsed.notes_en || ''),
+    serving_label_en: String(
+      summaryIn.serving_label_en || (isPlate ? 'full plate' : primary.serving_label_en),
+    ),
+    serving_label_ar: String(
+      summaryIn.serving_label_ar || (isPlate ? '\u0635\u062D\u0646 \u0643\u0627\u0645\u0644' : primary.serving_label_ar),
+    ),
+    total_weight_g: totalWeight,
+  };
 
+  const microIn =
+    parsed.micronutrients && typeof parsed.micronutrients === 'object' ? parsed.micronutrients : {};
+  const micronutrients = {};
+  for (const key of MICRO_KEYS) {
+    micronutrients[key] = level(microIn[key]);
+  }
+
+  const healthIn =
+    parsed.health_analysis && typeof parsed.health_analysis === 'object' ? parsed.health_analysis : {};
+  const health_analysis = {
+    health_score: Math.round(clamp(num(healthIn.health_score, 50), 0, 100)),
+    protein_score: Math.round(clamp(num(healthIn.protein_score, 50), 0, 100)),
+    fiber_score: Math.round(clamp(num(healthIn.fiber_score, 50), 0, 100)),
+    sugar_score: Math.round(clamp(num(healthIn.sugar_score, 50), 0, 100)),
+    fat_quality: String(healthIn.fat_quality || 'Moderate'),
+    sodium_level: String(healthIn.sodium_level || 'Moderate'),
+    meal_balance: String(healthIn.meal_balance || 'Fair'),
+    processing_level: String(healthIn.processing_level || 'Mixed'),
+    hydration_support: String(healthIn.hydration_support || 'Low'),
+    energy_density: String(healthIn.energy_density || 'Moderate'),
+    why_en: String(healthIn.why_en || ''),
+    why_ar: String(healthIn.why_ar || ''),
+  };
+
+  const dietIn =
+    parsed.diet_compatibility && typeof parsed.diet_compatibility === 'object'
+      ? parsed.diet_compatibility
+      : {};
+  const diet_compatibility = {};
+  for (const key of DIET_KEYS) {
+    diet_compatibility[key] = Boolean(dietIn[key]);
+  }
+
+  const allergens = Array.isArray(parsed.allergens)
+    ? parsed.allergens
+        .map((a) => String(a))
+        .filter((a) => ALLERGEN_SET.has(a) || ALLERGEN_SET.has(a.replace(/\b\w/g, (c) => c.toUpperCase())))
+        .map((a) => {
+          for (const known of ALLERGEN_SET) {
+            if (known.toLowerCase() === a.toLowerCase()) return known;
+          }
+          return a;
+        })
+        .filter((a, i, arr) => arr.indexOf(a) === i)
+    : [];
+
+  const improvements = Array.isArray(parsed.improvements)
+    ? parsed.improvements.slice(0, 6).map((row) => ({
+        action_en: String(row.action_en || row.action || ''),
+        action_ar: String(row.action_ar || ''),
+        kcal_delta: Math.round(num(row.kcal_delta)),
+        health_score_delta: Math.round(num(row.health_score_delta)),
+      })).filter((row) => row.action_en || row.action_ar)
+    : [];
+
+  const burnIn =
+    parsed.exercise_equivalent && typeof parsed.exercise_equivalent === 'object'
+      ? parsed.exercise_equivalent
+      : {};
+  const kcal = Math.max(0, macros.calories_kcal);
+  const exercise_equivalent = {
+    walking_min: Math.max(0, Math.round(num(burnIn.walking_min, kcal / 4))),
+    running_min: Math.max(0, Math.round(num(burnIn.running_min, kcal / 11))),
+    cycling_min: Math.max(0, Math.round(num(burnIn.cycling_min, kcal / 8))),
+    swimming_min: Math.max(0, Math.round(num(burnIn.swimming_min, kcal / 9))),
+    jump_rope_min: Math.max(0, Math.round(num(burnIn.jump_rope_min, kcal / 12))),
+    strength_training_min: Math.max(0, Math.round(num(burnIn.strength_training_min, kcal / 6))),
+  };
+
+  const confIn = parsed.confidence && typeof parsed.confidence === 'object' ? parsed.confidence : {};
+  const asUnit = (v, fallback) => {
+    const n = num(v, fallback);
+    return n > 1 ? clamp(n / 100, 0, 1) : clamp(n, 0, 1);
+  };
+  const avgFoodConf =
+    foods.reduce((s, f) => s + f.confidence, 0) / Math.max(foods.length, 1);
+  const confidence = {
+    food_recognition: asUnit(confIn.food_recognition, avgFoodConf),
+    portion_size: asUnit(confIn.portion_size, avgFoodConf * 0.9),
+    calories: asUnit(confIn.calories, avgFoodConf * 0.85),
+    macronutrients: asUnit(confIn.macronutrients, avgFoodConf * 0.85),
+    micronutrients: asUnit(confIn.micronutrients, avgFoodConf * 0.7),
+    overall: asUnit(confIn.overall, avgFoodConf),
+  };
+
+  const items = foods.map(foodToLegacyItem);
+
+  // Backward-compatible top-level fields + full report.
   return {
-    name_en: isPlate ? `Plate · ${items.length} items` : primary.name_en,
-    name_ar: isPlate
-      ? `\u0635\u062D\u0646 \u00B7 ${items.length} \u0623\u0635\u0646\u0627\u0641`
-      : primary.name_ar,
-    confidence: Math.max(0, Math.min(1, confidence)),
-    calories_kcal: Math.round(totals.calories_kcal),
-    protein_g: Math.round(totals.protein_g),
-    carbs_g: Math.round(totals.carbs_g),
-    fat_g: Math.round(totals.fat_g),
-    serving_size_g: Math.max(1, Math.round(totals.serving_size_g)),
-    serving_label_en: isPlate ? 'full plate' : primary.serving_label_en,
-    serving_label_ar: isPlate ? '\u0635\u062D\u0646 \u0643\u0627\u0645\u0644' : primary.serving_label_ar,
+    name_en: meal_summary.title_en,
+    name_ar: meal_summary.title_ar,
+    confidence: confidence.overall,
+    calories_kcal: macros.calories_kcal,
+    protein_g: macros.protein_g,
+    carbs_g: macros.carbs_g,
+    fat_g: macros.fat_g,
+    serving_size_g: totalWeight,
+    serving_label_en: meal_summary.serving_label_en,
+    serving_label_ar: meal_summary.serving_label_ar,
     category: isPlate ? 'plate' : primary.category,
-    notes_en: String(parsed.notes_en || ''),
+    notes_en: meal_summary.assumptions_en,
     items,
+    foods,
+    meal_summary,
+    macros,
+    micronutrients,
+    health_analysis,
+    diet_compatibility,
+    allergens,
+    improvements,
+    exercise_equivalent,
+    confidence_detail: confidence,
     model,
     provider: 'gemini',
+    engine: 'nutrition-vision-1.0',
   };
 }
 
@@ -282,7 +618,9 @@ async function callGemini(imageBase64, mimeType, locale) {
       {
         role: 'user',
         parts: [
-          { text: `${SYSTEM_PROMPT}\n\nUser locale preference: ${locale}` },
+          {
+            text: `${SYSTEM_PROMPT}\n\nUser locale preference: ${locale}. Fill both English and Arabic name fields.`,
+          },
           {
             inlineData: {
               mimeType,
@@ -293,8 +631,8 @@ async function callGemini(imageBase64, mimeType, locale) {
       },
     ],
     generationConfig: {
-      temperature: 0.2,
-      maxOutputTokens: 1600,
+      temperature: 0.15,
+      maxOutputTokens: 8192,
       responseMimeType: 'application/json',
       thinkingConfig: { thinkingBudget: 0 },
     },
@@ -342,7 +680,6 @@ async function callGemini(imageBase64, mimeType, locale) {
     .map((p) => p.text || '')
     .join('');
   if (!text) {
-    // Blocked / empty candidates often mean safety filter or quota soft-fail.
     const finish = data?.candidates?.[0]?.finishReason || data?.promptFeedback?.blockReason || '';
     const err = new Error(finish ? `Scan failed (${finish})` : 'Scan failed');
     err.status = 502;

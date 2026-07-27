@@ -140,6 +140,7 @@ export function useInference(): UseInferenceReturn {
                 topDetection: detections[0] ?? null,
                 nutrition: isUnknown ? null : ai.nutrition,
                 items: isUnknown ? [] : ai.items,
+                report: isUnknown ? null : ai.report,
                 confidence: ai.confidence,
                 lowConfidence: isUnknown || isLowConfidence(ai.confidence, threshold),
                 modelVersion: `${AI_MODEL_VERSION}:${ai.model}`,

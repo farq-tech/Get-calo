@@ -5,11 +5,11 @@
 
 import { Platform } from 'react-native';
 
-import type { NutritionItem } from '@/types';
+import type { NutritionItem, NutritionReport, NutrientLevel } from '@/types';
 
-export const AI_MODEL_VERSION = 'vision-gemini-1.2';
+export const AI_MODEL_VERSION = 'vision-gemini-2.0';
 
-const ANALYZE_TIMEOUT_MS = 32000;
+const ANALYZE_TIMEOUT_MS = 50000;
 const MAX_EDGE_PX = 1280;
 const JPEG_QUALITY = 0.82;
 
@@ -19,6 +19,7 @@ export interface AiFoodResult {
   confidence: number;
   nutrition: NutritionItem;
   items: NutritionItem[];
+  report: NutritionReport | null;
   notesEn?: string;
   model: string;
   provider: string;
@@ -152,10 +153,134 @@ function toNutrition(raw: Record<string, unknown>, index = 0): NutritionItem {
     proteinG: Number(raw.protein_g) || 0,
     carbsG: Number(raw.carbs_g) || 0,
     fatG: Number(raw.fat_g) || 0,
-    servingSizeG: Number(raw.serving_size_g) || 100,
+    servingSizeG: Number(raw.serving_size_g || raw.estimated_weight_g) || 100,
     servingLabelEn: String(raw.serving_label_en || 'serving'),
     servingLabelAr: raw.serving_label_ar ? String(raw.serving_label_ar) : null,
     category: raw.category ? String(raw.category) : 'food',
+    fiberG: Number(raw.fiber_g) || 0,
+    sugarG: Number(raw.sugar_g) || 0,
+    sodiumMg: Number(raw.sodium_mg) || 0,
+  };
+}
+
+function asLevel(value: unknown): NutrientLevel {
+  const raw = String(value || '').toLowerCase();
+  if (raw.startsWith('h')) return 'High';
+  if (raw.startsWith('m')) return 'Medium';
+  return 'Low';
+}
+
+function toReport(r: Record<string, unknown>): NutritionReport | null {
+  const foodsRaw = Array.isArray(r.foods)
+    ? (r.foods as Record<string, unknown>[])
+    : Array.isArray(r.items)
+      ? (r.items as Record<string, unknown>[])
+      : [];
+  if (foodsRaw.length === 0 && !r.macros && !r.health_analysis) return null;
+
+  const foods = foodsRaw.map((food) => ({
+    nameEn: String(food.name_en || 'Unknown'),
+    nameAr: String(food.name_ar || ''),
+    weightG: Number(food.estimated_weight_g || food.serving_size_g) || 0,
+    confidence: Math.max(0, Math.min(1, Number(food.confidence) || 0)),
+    caloriesKcal: Number(food.calories_kcal) || 0,
+    proteinG: Number(food.protein_g) || 0,
+    carbsG: Number(food.carbs_g) || 0,
+    fatG: Number(food.fat_g) || 0,
+    fiberG: Number(food.fiber_g) || 0,
+    sugarG: Number(food.sugar_g) || 0,
+    sodiumMg: Number(food.sodium_mg) || 0,
+  }));
+
+  const macrosRaw = (r.macros || {}) as Record<string, unknown>;
+  const summaryRaw = (r.meal_summary || {}) as Record<string, unknown>;
+  const healthRaw = (r.health_analysis || {}) as Record<string, unknown>;
+  const dietRaw = (r.diet_compatibility || {}) as Record<string, unknown>;
+  const microRaw = (r.micronutrients || {}) as Record<string, unknown>;
+  const burnRaw = (r.exercise_equivalent || {}) as Record<string, unknown>;
+  const confRaw = (r.confidence_detail || r.confidence || {}) as Record<string, unknown>;
+
+  const micronutrients: Record<string, NutrientLevel> = {};
+  for (const [key, value] of Object.entries(microRaw)) {
+    micronutrients[key] = asLevel(value);
+  }
+
+  const dietCompatibility: Record<string, boolean> = {};
+  for (const [key, value] of Object.entries(dietRaw)) {
+    dietCompatibility[key] = Boolean(value);
+  }
+
+  const improvements = Array.isArray(r.improvements)
+    ? (r.improvements as Record<string, unknown>[]).map((row) => ({
+        actionEn: String(row.action_en || ''),
+        actionAr: String(row.action_ar || ''),
+        kcalDelta: Number(row.kcal_delta) || 0,
+        healthScoreDelta: Number(row.health_score_delta) || 0,
+      }))
+    : [];
+
+  const unit = (v: unknown, fallback = 0.5) => {
+    const n = Number(v);
+    if (!Number.isFinite(n)) return fallback;
+    return n > 1 ? Math.max(0, Math.min(1, n / 100)) : Math.max(0, Math.min(1, n));
+  };
+
+  return {
+    foods,
+    mealSummary: {
+      titleEn: String(summaryRaw.title_en || r.name_en || ''),
+      titleAr: String(summaryRaw.title_ar || r.name_ar || ''),
+      assumptionsEn: String(summaryRaw.assumptions_en || r.notes_en || ''),
+      servingLabelEn: String(summaryRaw.serving_label_en || ''),
+      servingLabelAr: String(summaryRaw.serving_label_ar || ''),
+      totalWeightG: Number(summaryRaw.total_weight_g || r.serving_size_g) || 0,
+    },
+    macros: {
+      caloriesKcal: Number(macrosRaw.calories_kcal ?? r.calories_kcal) || 0,
+      proteinG: Number(macrosRaw.protein_g ?? r.protein_g) || 0,
+      carbsG: Number(macrosRaw.carbs_g ?? r.carbs_g) || 0,
+      fatG: Number(macrosRaw.fat_g ?? r.fat_g) || 0,
+      fiberG: Number(macrosRaw.fiber_g) || 0,
+      sugarG: Number(macrosRaw.sugar_g) || 0,
+      sodiumMg: Number(macrosRaw.sodium_mg) || 0,
+      cholesterolMg: Number(macrosRaw.cholesterol_mg) || 0,
+      saturatedFatG: Number(macrosRaw.saturated_fat_g) || 0,
+      unsaturatedFatG: Number(macrosRaw.unsaturated_fat_g) || 0,
+    },
+    micronutrients,
+    healthAnalysis: {
+      healthScore: Number(healthRaw.health_score) || 0,
+      proteinScore: Number(healthRaw.protein_score) || 0,
+      fiberScore: Number(healthRaw.fiber_score) || 0,
+      sugarScore: Number(healthRaw.sugar_score) || 0,
+      fatQuality: String(healthRaw.fat_quality || ''),
+      sodiumLevel: String(healthRaw.sodium_level || ''),
+      mealBalance: String(healthRaw.meal_balance || ''),
+      processingLevel: String(healthRaw.processing_level || ''),
+      hydrationSupport: String(healthRaw.hydration_support || ''),
+      energyDensity: String(healthRaw.energy_density || ''),
+      whyEn: String(healthRaw.why_en || ''),
+      whyAr: String(healthRaw.why_ar || ''),
+    },
+    dietCompatibility,
+    allergens: Array.isArray(r.allergens) ? r.allergens.map((a) => String(a)) : [],
+    improvements,
+    exerciseEquivalent: {
+      walkingMin: Number(burnRaw.walking_min) || 0,
+      runningMin: Number(burnRaw.running_min) || 0,
+      cyclingMin: Number(burnRaw.cycling_min) || 0,
+      swimmingMin: Number(burnRaw.swimming_min) || 0,
+      jumpRopeMin: Number(burnRaw.jump_rope_min) || 0,
+      strengthTrainingMin: Number(burnRaw.strength_training_min) || 0,
+    },
+    confidenceDetail: {
+      foodRecognition: unit(confRaw.food_recognition, Number(r.confidence) || 0.5),
+      portionSize: unit(confRaw.portion_size, 0.5),
+      calories: unit(confRaw.calories, 0.5),
+      macronutrients: unit(confRaw.macronutrients, 0.5),
+      micronutrients: unit(confRaw.micronutrients, 0.4),
+      overall: unit(confRaw.overall, Number(r.confidence) || 0.5),
+    },
   };
 }
 
@@ -210,7 +335,11 @@ export async function analyzeFoodWithAi(
   }
 
   const r = payload.result as Record<string, unknown>;
-  const rawItems = Array.isArray(r.items) ? (r.items as Record<string, unknown>[]) : [];
+  const rawItems = Array.isArray(r.items)
+    ? (r.items as Record<string, unknown>[])
+    : Array.isArray(r.foods)
+      ? (r.foods as Record<string, unknown>[])
+      : [];
   const items =
     rawItems.length > 0
       ? rawItems.map((item, i) => toNutrition(item, i))
@@ -234,6 +363,9 @@ export async function analyzeFoodWithAi(
         ? 'صحن كامل'
         : items[0]?.servingLabelAr ?? null,
     category: r.category ? String(r.category) : items.length > 1 ? 'plate' : 'food',
+    fiberG: Number((r.macros as Record<string, unknown> | undefined)?.fiber_g) || 0,
+    sugarG: Number((r.macros as Record<string, unknown> | undefined)?.sugar_g) || 0,
+    sodiumMg: Number((r.macros as Record<string, unknown> | undefined)?.sodium_mg) || 0,
   };
 
   return {
@@ -242,6 +374,7 @@ export async function analyzeFoodWithAi(
     confidence: Math.max(0, Math.min(1, Number(r.confidence) || 0.5)),
     nutrition,
     items,
+    report: toReport(r),
     notesEn: r.notes_en ? String(r.notes_en) : undefined,
     model: String(r.model || 'gemini'),
     provider: String(r.provider || 'gemini'),
