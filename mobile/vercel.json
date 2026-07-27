@@ -10,7 +10,7 @@
       "destination": "/api/$1"
     },
     {
-      "source": "/((?!_expo/|assets/|api/).*)",
+      "source": "/((?!_expo/|assets/|api/|version\\.json).*)",
       "destination": "/index.html"
     }
   ],
