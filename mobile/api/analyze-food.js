@@ -23,6 +23,7 @@ DETECTION RULES
 - Soft drink cans/bottles are that drink — never electronics/toys.
 - Prefer clear everyday Arabic (Saudi) names (أرز، تمر، دجاج مشوي، نوتيلا).
 - Base estimates on USDA / FoodData Central equivalents. If partially hidden, estimate conservatively.
+- Estimate ONLY the portion visibly present in the photo (e.g. 1–2 pizza slices on a plate ≠ whole pizza; one date ≠ a box).
 - Never invent impossible foods.
 
 --------------------------------------------------
