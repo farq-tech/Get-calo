@@ -98,8 +98,8 @@ export function useInference(): UseInferenceReturn {
 
       try {
         setScanStep('recognize');
-        await wait(INTRO_MS);
-        if (!active()) return { status: 'cancelled' };
+        // Start cloud analysis immediately — don't wait for intro animation.
+        const intro = wait(INTRO_MS);
 
         if (preferCloud) {
           let lastErr: unknown = null;
@@ -110,7 +110,7 @@ export function useInference(): UseInferenceReturn {
               if (attempt > 0) await wait(350);
               const progress = advanceSteps('portion', scanId);
               const ai = await analyzeFoodWithAi(imageUri, locale, abort.signal);
-              await progress;
+              await Promise.all([intro, progress]);
               if (!active()) return { status: 'cancelled' };
 
               await advanceSteps('finalize', scanId);
@@ -156,12 +156,14 @@ export function useInference(): UseInferenceReturn {
             }
           }
 
-          // Web must never fall through to random mock catalog foods.
+          await intro;
           if (web) {
             const message = mapCloudError(lastErr, locale);
             setError(message);
             return { status: 'error', message };
           }
+        } else {
+          await intro;
         }
 
         // Native / offline-only path

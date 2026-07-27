@@ -194,13 +194,24 @@ export function useWebCamera(): UseWebCameraReturn {
       const canvas = drawCoverFrame();
       if (!canvas) return null;
 
-      // Prefer blob: URLs — smaller memory path than giant data: URLs on mobile Safari.
+      // Prefer a compact JPEG data URL (parsed without fetch — CSP-safe).
+      // Avoid blob: object URLs: connect-src without `blob:` blocks fetch(blob:) on web.
       if (typeof canvas.toBlob === 'function') {
         const blob = await new Promise<Blob | null>((resolve) => {
           canvas.toBlob((b) => resolve(b), 'image/jpeg', CAPTURE_JPEG_QUALITY);
         });
         if (blob && blob.size >= 64) {
-          return URL.createObjectURL(blob);
+          const dataUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              const result = typeof reader.result === 'string' ? reader.result : '';
+              if (result.startsWith('data:')) resolve(result);
+              else reject(new Error('Failed to encode photo'));
+            };
+            reader.onerror = () => reject(new Error('Failed to encode photo'));
+            reader.readAsDataURL(blob);
+          });
+          return dataUrl;
         }
       }
       return canvas.toDataURL('image/jpeg', CAPTURE_JPEG_QUALITY);

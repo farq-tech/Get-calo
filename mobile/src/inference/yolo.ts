@@ -1,20 +1,15 @@
 /**
- * On-device food/drink scan for Calora.
+ * On-device food/drink scan for Get Calo.
  *
- * Runs bundled YOLOv8 ONNX (40 Farq food/drink classes) via:
- * - Web: onnxruntime-web (WASM)
- * - Native custom builds: onnxruntime-react-native
- *
- * Falls back to catalog mock only if the model cannot load.
+ * Runs bundled YOLOv8 ONNX via onnxruntime-web / react-native.
+ * On failure returns empty detections (no random catalog mocks).
  */
 
 import { Platform } from 'react-native';
 
 import type { Detection } from '@/types';
 import { LOW_CONFIDENCE_THRESHOLD } from '@/types';
-import { getBundledNutritionSeed } from '@/db/seed';
 
-import { getModelClass, getModelClasses } from './labels';
 import { runOnnx, getOnnxSession, getOrtLoadError } from './ortSession';
 import { decodeYoloOutput } from './postprocess';
 import { preprocessImageUri } from './preprocess';
@@ -68,41 +63,8 @@ export function getSession(): InferenceSession | null {
   return session;
 }
 
-function hashUri(uri: string): number {
-  let h = 2166136261;
-  for (let i = 0; i < uri.length; i += 1) {
-    h ^= uri.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return h >>> 0;
-}
 
-function catalogSize(): number {
-  return Math.max(1, getModelClasses().length || getBundledNutritionSeed().length);
-}
 
-function mockDetections(uri: string, threshold: number): Detection[] {
-  const classCount = catalogSize();
-  const seed = hashUri(uri);
-  const classId = seed % classCount;
-  const confidence = 0.55 + ((seed % 40) / 100);
-  const jitter = ((seed >> 8) % 20) / 100;
-  const modelClass = getModelClass(classId);
-
-  const primary: Detection = {
-    classId,
-    confidence: Math.min(0.98, confidence),
-    bbox: {
-      x: 0.18 + jitter * 0.2,
-      y: 0.22 + jitter * 0.15,
-      width: 0.55 - jitter * 0.1,
-      height: 0.5 - jitter * 0.1,
-    },
-    label: modelClass?.nameEn,
-  };
-
-  return [primary].filter((d) => d.confidence >= threshold * 0.5);
-}
 
 /** Resolve scan URI (identity — kept for callers that previously remapped demo URIs). */
 export async function resolveScanUri(uri: string): Promise<string> {
@@ -155,21 +117,9 @@ export async function runInference(
     }
   }
 
-  const detections = mockDetections(uri, threshold)
-    .sort((a, b) => b.confidence - a.confidence)
-    .slice(0, maxDetections);
-
-  // Never invent random catalog foods on web — callers treat mock as failure.
-  if (Platform.OS === 'web') {
-    return {
-      detections: [],
-      backend: 'mock',
-      modelVersion: `${active.modelVersion}-mock`.replace(/-mock-mock$/, '-mock'),
-    };
-  }
-
+  // Do not invent random catalog foods — that produced "Corn Flour" / "Curry Powder" nonsense.
   return {
-    detections,
+    detections: [],
     backend: 'mock',
     modelVersion: `${active.modelVersion}-mock`.replace(/-mock-mock$/, '-mock'),
   };

@@ -23,6 +23,7 @@ import { loadModel } from '@/inference/yolo';
 import { checkForModelUpdates, getLocalModelInfo } from '@/inference/modelManager';
 import { useModelStore, useSettingsStore } from '@/hooks/useSettingsStore';
 import { colors } from '@/theme/colors';
+import { checkForWebAppUpdate } from '@/utils/appUpdate';
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
@@ -41,6 +42,10 @@ export default function RootLayout() {
     IBMPlexSansArabic_600SemiBold,
     IBMPlexSansArabic_700Bold,
   });
+
+  useEffect(() => {
+    void checkForWebAppUpdate();
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
